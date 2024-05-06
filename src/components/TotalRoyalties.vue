@@ -63,7 +63,7 @@ onMounted(async () => {
 
 const fetchRoyaltiesForAllAuthors = async () => {
   if (!selectedQuarter.value) return;
-  const rawRoyalties = await store.dispatch("calculateRoyaltiesForAllAuthors", {
+  const rawRoyalties = calculateRoyaltiesForAllAuthors({
     quarter: selectedQuarter.value,
   });
   authorRoyalties.value = rawRoyalties.map((royalty) => ({
@@ -71,6 +71,31 @@ const fetchRoyaltiesForAllAuthors = async () => {
     totalRoyalties: formatCurrency(Math.floor(royalty.totalRoyalties * 0.967)),
   }));
 };
+
+function calculateRoyaltiesForAllAuthors({ quarter }) {
+  let royalties = [];
+  store.state.authors.forEach((author) => {
+    let totalRoyalties = 0;
+    const targetAuthorContracts = store.state.authorContracts.filter((authorContract) => authorContract.authorId === author.id);
+    const targetAuthorContractsMapByBookId = new Map(targetAuthorContracts.map(authorContract => [authorContract.bookId, authorContract]));
+    const targetBooks = store.state.books.filter((book) => targetAuthorContractsMapByBookId.has(book.id));
+    const targetBooksMapByIsbnPaper = new Map(targetBooks.map((book) => [book.isbnPaper, book]));
+    store.state.sales.forEach((sale) => {
+      if (targetBooksMapByIsbnPaper.has(sale.ISBN) && sale.quarter === quarter) {
+        const targetBook = (targetBooksMapByIsbnPaper.get(sale.ISBN));
+        totalRoyalties +=
+            (targetBook.pricePaper * targetAuthorContractsMapByBookId.get(targetBook.id).royaltyRatePaper / 100) * sale.quantity;
+      }
+    });
+
+    royalties.push({
+      authorId: author.id,
+      authorName: author.name,
+      totalRoyalties: totalRoyalties,
+    });
+  });
+  return royalties;
+}
 
 function formatCurrency(num) {
   return num.toLocaleString();

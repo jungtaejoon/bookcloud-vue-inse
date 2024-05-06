@@ -461,30 +461,6 @@ export const store = createStore({
       });
       commit("SET_SALES", sales);
     },
-    async calculateRoyaltiesForAllAuthors({ state }, { quarter }) {
-      let royalties = [];
-      state.authors.forEach((author) => {
-        let totalRoyalties = 0;
-        const targetAuthorContracts = state.authorContracts.filter((authorContract) => authorContract.authorId === author.id);
-        const targetAuthorContractsMapByBookId = new Map(targetAuthorContracts.map(authorContract => [authorContract.bookId, authorContract]));
-        const targetBooks = state.books.filter((book) => targetAuthorContractsMapByBookId.has(book.id));
-        const targetBooksMapByIsbnPaper = new Map(targetBooks.map((book) => [book.isbnPaper, book]));
-        state.sales.forEach((sale) => {
-          if (targetBooksMapByIsbnPaper.has(sale.ISBN) && sale.quarter === quarter) {
-            const targetBook = (targetBooksMapByIsbnPaper.get(sale.ISBN));
-            totalRoyalties +=
-                (targetBook.pricePaper * targetAuthorContractsMapByBookId.get(targetBook.id).royaltyRatePaper / 100) * sale.quantity;
-          }
-        });
-        
-        royalties.push({
-          authorId: author.id,
-          authorName: author.name,
-          totalRoyalties: totalRoyalties,
-        });
-      });
-      return royalties;
-    },
     async savePayment({ commit }, { payment }) {
       const db = await getDB();
       if (!db) {
