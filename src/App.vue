@@ -75,7 +75,7 @@ const uploadData = (event) => {
 
 <style>
 .container {
-  max-width: 1200px;
+  max-width: 2500px;
   margin: 0 auto;
   padding: 1rem;
 }

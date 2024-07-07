@@ -461,6 +461,35 @@ export const store = createStore({
       });
       commit("SET_SALES", sales);
     },
+    async addRoyalty({ commit }, royalty ) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["authorRoyalties"], "readwrite");
+      const objectStore = transaction.objectStore("authorRoyalties");
+      await new Promise((resolve, reject) => {
+        const request = objectStore.add(royalty);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    },
+    async getRoyalty({ commit }, key ) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["authorRoyalties"]);
+      const objectStore = transaction.objectStore("authorRoyalties");
+      const index = objectStore.index("by_quarter_author_book");
+      await new Promise((resolve, reject) => {
+        const request = index.get(key);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    },
     async savePayment({ commit }, { payment }) {
       const db = await getDB();
       if (!db) {

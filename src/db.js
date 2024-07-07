@@ -1,5 +1,5 @@
 const DB_NAME = "INSE";
-const DB_VERSION = 3;
+const DB_VERSION = 6;
 const AUTHORS_STRING = "authors";
 const BOOKS_STRING = "books";
 const BOOK_STORES_STRING = "bookStores";
@@ -7,6 +7,7 @@ const AUTHOR_PAYMENTS_STRING = "authorPayments";
 const SALES_STRING = "sales";
 const AUTHOR_CONTRACTS_STRING = "authorContracts";
 const BOOK_STORE_EXCEL_KEY_AND_NAME_STRING = "bookStoreExcelKeyAndName";
+const ROYALTIES_STRING = "authorRoyalties";
 
 let dbInstance = null;
 
@@ -76,6 +77,17 @@ const initDB = () => {
           },
         );
         bookStoreExcelKeyAndName.createIndex("by_headers", "headers");
+      }
+
+      if (!db.objectStoreNames.contains(ROYALTIES_STRING)) {
+        const royalties = db.createObjectStore(
+            ROYALTIES_STRING,
+            {
+              keyPath: "id",
+              autoIncrement: true,
+            },
+        );
+        royalties.createIndex("by_quarter_author_book", "quarterAuthorBook");
       }
     };
 
