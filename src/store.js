@@ -474,7 +474,7 @@ export const store = createStore({
         request.onerror = () => reject(request.error);
       });
     },
-    async getRoyalty({ commit }, key ) {
+    async getRoyaltyByQAB({ commit }, key ) {
       const db = await getDB();
       if (!db) {
         console.error(commit + "DB is not initialized yet");

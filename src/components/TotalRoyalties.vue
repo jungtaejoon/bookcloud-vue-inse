@@ -9,7 +9,6 @@
         </option>
       </select>
       <button @click="fetchRoyaltiesForAllAuthors">인세 요약 조회</button>
-      <button class="save-royalties-button" @click="addRoyalties">인세 저장</button>
     </div>
 
     <table v-if="authorRoyalties.length > 0">
@@ -149,9 +148,15 @@ const fetchRoyaltiesForAllAuthors = async () => {
   const promises = authorRoyalties.value.map(async (royalty) => {
     if(royalty.sumRoyalty > 0) {
       const key = makeKey(selectedQuarter.value, royalty.author.id, royalty.book.id);
-      const noNeed = await store.dispatch("getRoyalty", key);
+      const noNeed = await store.dispatch("getRoyaltyByQAB", key);
       if(!noNeed) {
-        await store.dispatch("addRoyalty", {qab: key, royalty: toRaw(royalty)})
+        await store.dispatch("addRoyalty", {
+          qab: key,
+          quarter: selectedQuarter.value,
+          authorId: royalty.author.id,
+          bookId: royalty.book.id,
+          royalty: toRaw(royalty),
+        })
       }
     }
   });
@@ -186,10 +191,6 @@ function calculateRoyaltiesForAllAuthorsByBooks(quarter) {
   });
   return royalties;
 }
-
-const addRoyalties = () => {
-
-};
 
 </script>
 

@@ -88,6 +88,9 @@ const initDB = () => {
             },
         );
         royalties.createIndex("by_qab", "qab");
+        royalties.createIndex("by_quarter", "quarter");
+        royalties.createIndex("by_authorId", "authorId");
+        royalties.createIndex("by_bookId", "bookId");
       }
     };
 
