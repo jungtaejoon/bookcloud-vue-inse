@@ -9,7 +9,7 @@
         </option>
       </select>
       <button @click="fetchRoyaltiesForAllAuthors">인세 요약 조회</button>
-      <button v-if="isNew" class="save-royalties-button" @click="addRoyalties">인세 저장</button>
+      <button class="save-royalties-button" @click="addRoyalties">인세 저장</button>
     </div>
 
     <table v-if="authorRoyalties.length > 0">
@@ -77,7 +77,6 @@ const quarters = computed(() =>
 const authorRoyalties = ref([]);
 const modifiedSalesMapByISBNQuarter = new Map();
 const modifiedContractsMapByAuthorAndBookId = new Map();
-const isNew = ref(false);
 
 const updateModifiedSalesMap = () => {
   store.state.sales.forEach((sale) => {
