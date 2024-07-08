@@ -58,10 +58,14 @@ const initDB = () => {
       }
 
       if (!db.objectStoreNames.contains(AUTHOR_PAYMENTS_STRING)) {
-        db.createObjectStore(AUTHOR_PAYMENTS_STRING, {
+        const authorPayments = db.createObjectStore(AUTHOR_PAYMENTS_STRING, {
           keyPath: "id",
           autoIncrement: true,
         });
+        authorPayments.createIndex("by_authorId", "authorId");
+        authorPayments.createIndex("by_bookId", "bookId");
+        authorPayments.createIndex("by_date", "date");
+        authorPayments.createIndex("by_timestamp", "timestamp");
       }
 
       if (!db.objectStoreNames.contains(SALES_STRING)) {
