@@ -1,5 +1,5 @@
 const DB_NAME = "INSE";
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const AUTHORS_STRING = "authors";
 const BOOKS_STRING = "books";
 const BOOK_STORES_STRING = "bookStores";
@@ -42,7 +42,7 @@ const initDB = () => {
       }
 
       if (!db.objectStoreNames.contains(AUTHOR_CONTRACTS_STRING)) {
-        const authorContractsOS = db.createObjectStore(AUTHOR_CONTRACTS_STRING, {
+        db.createObjectStore(AUTHOR_CONTRACTS_STRING, {
           keyPath: "id",
           autoIncrement: true,
         });
@@ -87,7 +87,7 @@ const initDB = () => {
               autoIncrement: true,
             },
         );
-        royalties.createIndex("by_quarter_author_book", "quarterAuthorBook");
+        royalties.createIndex("by_qab", "qab");
       }
     };
 

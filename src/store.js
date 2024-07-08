@@ -1,5 +1,5 @@
-import { createStore } from "vuex";
-import { getDB } from './db';
+import {createStore} from "vuex";
+import {getDB} from './db';
 
 export const store = createStore({
   state: {
@@ -378,23 +378,22 @@ export const store = createStore({
       }
       const transaction = db.transaction(["sales"]);
       const objectStore = transaction.objectStore("sales");
-      const sales = await new Promise((resolve, reject) => {
+      // 필터링된 데이터 반환
+      return await new Promise((resolve, reject) => {
         // 모든 판매 데이터를 조회
         const request = objectStore.getAll();
         request.onsuccess = () => {
           // 조회된 판매 데이터 중에서 특정 서점 ID와 년도/분기에 해당하는 데이터만 필터링
           const filteredSales = request.result.filter((sale) => {
             return (
-              sale.bookStore.idNumber === bookStoreId &&
-              sale.quarter === yearQuarter
+                sale.bookStore.idNumber === bookStoreId &&
+                sale.quarter === yearQuarter
             );
           });
           resolve(filteredSales);
         };
         request.onerror = () => reject(request.error);
       });
-      // 필터링된 데이터 반환
-      return sales;
     },
     async addSale({ commit }, { sale }) {
       const db = await getDB();
@@ -483,10 +482,12 @@ export const store = createStore({
       }
       const transaction = db.transaction(["authorRoyalties"]);
       const objectStore = transaction.objectStore("authorRoyalties");
-      const index = objectStore.index("by_quarter_author_book");
-      await new Promise((resolve, reject) => {
+      const index = objectStore.index("by_qab");
+      return await new Promise((resolve, reject) => {
         const request = index.get(key);
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        }
         request.onerror = () => reject(request.error);
       });
     },

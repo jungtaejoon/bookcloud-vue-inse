@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted, watch} from "vue";
+import {ref, computed, onMounted, watch, toRaw} from "vue";
 import { useStore } from "vuex";
 
 const store = useStore();
@@ -143,96 +143,6 @@ onMounted(async () => {
   updateModifiedContractsMapByAuthorAndBookId();
 });
 
-function mergeQuantitiesByBook(tempMergedSalesByBookStore, book, sale) {
-  const index = tempMergedSalesByBookStore.findIndex(
-      (item) =>
-          item.bookStore["id"] === sale.bookStore.id &&
-          item.ISBN === book.isbnPaper,
-  );
-
-  if (index !== -1) {
-    // 항목이 존재하면 value에 값을 더합니다.
-    tempMergedSalesByBookStore[index].quantity += sale.quantity;
-  } else {
-    // 항목이 존재하지 않으면 새 항목을 추가합니다.
-    tempMergedSalesByBookStore.push({
-      ISBN: book.isbnPaper,
-      bookStore: sale.bookStore,
-      quantity: sale.quantity,
-    });
-  }
-}
-
-function buildRoyaltyTable(array, authorContractsMap) {
-  const royaltyTable = [];
-  array.forEach((sale) => {
-    const index = royaltyTable.findIndex(
-        (item) => item.book["isbnPaper"] === sale.ISBN,
-    );
-    if (index !== -1) {
-      switch (sale.bookStore.idNumber) {
-        case kyoboIdNumber:
-          royaltyTable[index].kyoboQuantity = sale.quantity;
-          break;
-        case youngpoongIdNumber:
-          royaltyTable[index].youngpoongQuantity = sale.quantity;
-          break;
-        case yes24IdNumber:
-          royaltyTable[index].yes24Quantity = sale.quantity;
-          break;
-        case aladinIdNumber:
-          royaltyTable[index].aladinQuantity = sale.quantity;
-          break;
-        case gitaIdNumber:
-          royaltyTable[index].gitaQuantity = sale.quantity;
-          break;
-      }
-      royaltyTable[index].total += sale.quantity;
-    } else {
-      const targetBook = books.value.find((book) => book.isbnPaper === sale.ISBN)
-      royaltyTable.push({
-        book: targetBook,
-        kyoboQuantity:
-            kyoboIdNumber === sale.bookStore.idNumber ? sale.quantity : 0,
-        youngpoongQuantity:
-            youngpoongIdNumber === sale.bookStore.idNumber ? sale.quantity : 0,
-        yes24Quantity:
-            yes24IdNumber === sale.bookStore.idNumber ? sale.quantity : 0,
-        aladinQuantity:
-            aladinIdNumber === sale.bookStore.idNumber ? sale.quantity : 0,
-        gitaQuantity:
-            gitaIdNumber === sale.bookStore.idNumber ? sale.quantity : 0,
-        total: sale.quantity,
-        pricePaper: targetBook.pricePaper,
-      });
-    }
-  });
-  return royaltyTable;
-}
-
-const fetchRoyalties = (authorId) => {
-  const royalties = ref([]);
-  const selectedAuthorContracts = authorContracts.value.filter((authorContract) => authorContract.authorId === authorId);
-  const selectedAuthorContractsMap = new Map(selectedAuthorContracts.map((authorContract) => [authorContract.bookId, authorContract]));
-  const authorBooks = books.value.filter((book) => selectedAuthorContractsMap.has(book.id));
-  const tempArray = [];
-  sales.value.forEach((sale) => {
-    authorBooks.forEach((book) => {
-      if (
-          book.isbnPaper === sale.ISBN &&
-          sale.quarter === selectedQuarter.value
-      ) {
-        mergeQuantitiesByBook(tempArray, book, sale);
-      }
-    });
-  });
-  royalties.value = buildRoyaltyTable(tempArray);
-  return royalties;
-  // 인세 정보 조회 로직
-  // store.dispatch('fetchRoyalties', { authorId: selectedAuthorId.value, quarter: selectedQuarter.value });
-  // 예시 데이터
-};
-
 const fetchRoyaltiesForAllAuthors = async () => {
   if (!selectedQuarter.value) return;
   const rawRoyalties = calculateRoyaltiesForAllAuthorsByBooks(selectedQuarter.value);
@@ -242,7 +152,7 @@ const fetchRoyaltiesForAllAuthors = async () => {
       const key = makeKey(selectedQuarter.value, royalty.author.id, royalty.book.id);
       const noNeed = await store.dispatch("getRoyalty", key);
       if(!noNeed) {
-        await store.dispatch("addRoyalty", {quarterAuthorBook: key, royalty: royalty})
+        await store.dispatch("addRoyalty", {qab: key, royalty: toRaw(royalty)})
       }
     }
   });
@@ -257,12 +167,13 @@ function calculateRoyaltiesForAllAuthorsByBooks(quarter) {
   const royalties = [];
   modifiedContractsMapByAuthorAndBookId.forEach((modifiedContract) => {
     const modifiedSale = modifiedSalesMapByISBNQuarter.get(`${modifiedContract.isbnPaper}/${quarter}`);
-    console.log(modifiedSale);
     const royaltyPaper = modifiedSale ? modifiedSale.quantity * modifiedContract.pricePaper * modifiedContract.royaltyRatePaper / 100 : 0
     const royaltyEBook = 0;
     const sumRoyalty = royaltyPaper + royaltyEBook;
     royalties.push({
       ...modifiedContract,
+      author: toRaw(modifiedContract.author),
+      book: toRaw(modifiedContract.book),
       kyoboQuantity: modifiedSale ? modifiedSale.kyoboQuantity : 0,
       youngpoongQuantity: modifiedSale ? modifiedSale.youngpoongQuantity : 0,
       gitaQuantity: modifiedSale ? modifiedSale.gitaQuantity : 0,
@@ -274,7 +185,6 @@ function calculateRoyaltiesForAllAuthorsByBooks(quarter) {
       sumRoyalty: sumRoyalty,
     });
   });
-  console.log(royalties);
   return royalties;
 }
 

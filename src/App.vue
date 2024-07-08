@@ -16,7 +16,7 @@
       </div>
       <div class="data-actions">
         <button @click="downloadData">데이터 다운로드</button>
-        <input type="file" @change="uploadData" />
+        <input type="file" @change="uploadData"/>
       </div>
     </nav>
     <router-view></router-view>
@@ -24,8 +24,9 @@
 </template>
 
 <script setup>
-import { ref, provide, onMounted } from "vue";
-import { useStore } from "vuex";
+import {useStore} from "vuex";
+import {getDB} from "./db.js";
+import {exportToJson, clearDatabase, importFromJson} from "/src/idb-backup-and-restore.js";
 
 const store = useStore();
 
@@ -44,30 +45,54 @@ store.state.YES_24_ID_NUMBER = "00000002";
 store.state.KYOBO_ID_NUMBER = "00000003";
 store.state.YOUNGPOONG_ID_NUMBER = "00000004";
 
-const downloadData = () => {
+const downloadData = async () => {
   // 데이터를 문자열로 변환
-  const dataStr = JSON.stringify(store.state);
+  const db = await getDB();
+  exportToJson(db)
+      .then(result => {
+        // 데이터를 blob 형태로 생성
+        const blob = new Blob([result], {type: "application/json"});
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = "data.json";
 
-  // 데이터를 blob 형태로 생성
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.style.display = "none";
-  a.href = url;
-  a.download = "data.json";
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        console.log('Exported JSON string:', result)
+      })
+      .catch(error => {
+        console.error('Something went wrong during export:', error)
+      });
 
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
 };
 
-const uploadData = (event) => {
+const uploadData = async (event) => {
+
+
   const file = event.target.files[0];
   const reader = new FileReader();
-  reader.onload = (e) => {
-    const data = JSON.parse(e.target.result);
-    store.commit("SET_AUTHORS", data.authors);
-    store.commit("setBooks", data.books);
+  reader.onload = async (e) => {
+    const db = await getDB();
+    clearDatabase(db)
+        .then(() => {
+          console.log("DB cleared! ");
+          importFromJson(db, e.target.result)
+              .then(() => {
+                console.log('Successfully imported data');
+              })
+              .catch(error => {
+                console.error('Something went wrong during import:', error);
+              });
+        })
+        .catch(error => {
+          console.error('Something went wrong during upload:', error);
+        });
+    // const data = JSON.parse(e.target.result);
+    // store.commit("SET_AUTHORS", data.authors);
+    // store.commit("setBooks", data.books);
   };
   reader.readAsText(file);
 };
