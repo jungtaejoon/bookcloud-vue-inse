@@ -108,6 +108,7 @@ const fetchAuthorBooks = (authorId) => {
 
 const submitPayment = async () => {
   const payment = {
+    ab: `${selectedAuthorId.value}/${selectedBookId.value}`,
     authorId: selectedAuthorId.value,
     authorName: getAuthorName(selectedAuthorId.value),
     bookId: selectedBookId.value,
@@ -116,7 +117,7 @@ const submitPayment = async () => {
     timestamp: new Date().toISOString(),
     amount: parseInt(amount.value)
   };
-  await store.dispatch("savePayment", { payment: payment });  // Save to Vuex or server
+  await store.dispatch("savePayment", payment);  // Save to Vuex or server
   await store.dispatch('fetchAuthorPayments');
   resetForm();
 };

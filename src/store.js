@@ -8,7 +8,9 @@ export const store = createStore({
     books: [],
     bookStores: [],
     sales: [],
+    authorRoyalties: [],
     authorContracts: [],
+    debts: [],
   },
   mutations: {
     ADD_AUTHOR(state, author) {
@@ -63,6 +65,9 @@ export const store = createStore({
     SET_BOOK_STORE_EXCEL_KEY_AND_NAME(state, bookStoreExcelKeyAndName) {
       state.bookStoreExcelKeyAndName = bookStoreExcelKeyAndName;
     },
+    SET_AUTHOR_ROYALTIES(state, authorRoyalties) {
+      state.authorRoyalties = authorRoyalties;
+    },
     ADD_SALES(state, sale) {
       state.sales.push(sale);
     },
@@ -74,6 +79,9 @@ export const store = createStore({
     },
     SET_AUTHOR_PAYMENTS(state, payments) {
       state.authorPayments = payments;
+    },
+    SET_DEBTS(state, debts) {
+      state.debts = debts;
     },
   },
   actions: {
@@ -460,7 +468,7 @@ export const store = createStore({
       });
       commit("SET_SALES", sales);
     },
-    async addRoyalty({ commit }, royalty ) {
+    async addAuthorRoyalty({ commit }, authorRoyalty ) {
       const db = await getDB();
       if (!db) {
         console.error(commit + "DB is not initialized yet");
@@ -469,10 +477,43 @@ export const store = createStore({
       const transaction = db.transaction(["authorRoyalties"], "readwrite");
       const objectStore = transaction.objectStore("authorRoyalties");
       await new Promise((resolve, reject) => {
-        const request = objectStore.add(royalty);
+        const request = objectStore.add(authorRoyalty);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
+    },
+    async updateAuthorRoyalty({ commit }, authorRoyalty) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["authorRoyalties"], "readwrite");
+      const objectStore = transaction.objectStore("authorRoyalties");
+      await new Promise((resolve, reject) => {
+        const getRequest = objectStore.get(authorRoyalty.id);
+        getRequest.onsuccess = () => {
+          const updateRequest = objectStore.put(authorRoyalty);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve(updateRequest.result);
+        };
+        getRequest.onerror = () => reject(getRequest.error);
+      });
+    },
+    async fetchAuthorRoyalties({ commit }) {
+      const db = await getDB();
+      if (!db) {
+        console.error("DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["authorRoyalties"]);
+      const objectStore = transaction.objectStore("authorRoyalties");
+      const authorRoyalties = await new Promise((resolve, reject) => {
+        const request = objectStore.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      commit("SET_AUTHOR_ROYALTIES", authorRoyalties);
     },
     async getRoyaltyByQAB({ commit }, key ) {
       const db = await getDB();
@@ -491,7 +532,24 @@ export const store = createStore({
         request.onerror = () => reject(request.error);
       });
     },
-    async savePayment({ commit }, { payment }) {
+    async getRoyaltiesByQuarter({ commit }, key ) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["authorRoyalties"]);
+      const objectStore = transaction.objectStore("authorRoyalties");
+      const index = objectStore.index("by_quarter");
+      return await new Promise((resolve, reject) => {
+        const request = index.getAll(key);
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        }
+        request.onerror = () => reject(request.error);
+      });
+    },
+    async savePayment({ commit }, payment) {
       const db = await getDB();
       if (!db) {
         console.error(commit + "DB is not initialized yet");
@@ -537,6 +595,53 @@ export const store = createStore({
         request.onerror = () => reject(request.error);
       });
       commit("SET_AUTHOR_PAYMENTS", payments);
+    },
+    async saveDebt({ commit }, dept) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["debts"], "readwrite");
+      const objectStore = transaction.objectStore("debts");
+      await new Promise((resolve, reject) => {
+        const request = objectStore.add(dept);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    },
+    async deleteDebt({ commit }, debtId) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["debts"], "readwrite");
+      const objectStore = transaction.objectStore("debts");
+      await new Promise((resolve, reject) => {
+        const getRequest = objectStore.get(debtId);
+        getRequest.onsuccess = () => {
+          const deleteRequest = objectStore.delete(debtId);
+          deleteRequest.onerror = () => reject(deleteRequest.error);
+          deleteRequest.onsuccess = () => resolve(deleteRequest.result);
+        };
+        getRequest.onerror = () => reject(getRequest.error);
+      });
+    },
+    async fetchDebts({ commit }) {
+      const db = await getDB();
+      if (!db) {
+        console.error("DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["debts"]);
+      const objectStore = transaction.objectStore("debts");
+      const debts = await new Promise((resolve, reject) => {
+        const request = objectStore.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      commit("SET_DEBTS", debts);
     },
   },
 });

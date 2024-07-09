@@ -1,9 +1,10 @@
 const DB_NAME = "INSE";
-const DB_VERSION = 7;
+const DB_VERSION = 9;
 const AUTHORS_STRING = "authors";
 const BOOKS_STRING = "books";
 const BOOK_STORES_STRING = "bookStores";
 const AUTHOR_PAYMENTS_STRING = "authorPayments";
+const DEBTS_STRING = "debts";
 const SALES_STRING = "sales";
 const AUTHOR_CONTRACTS_STRING = "authorContracts";
 const BOOK_STORE_EXCEL_KEY_AND_NAME_STRING = "bookStoreExcelKeyAndName";
@@ -62,10 +63,23 @@ const initDB = () => {
           keyPath: "id",
           autoIncrement: true,
         });
+        authorPayments.createIndex("by_ab", "ab");
         authorPayments.createIndex("by_authorId", "authorId");
         authorPayments.createIndex("by_bookId", "bookId");
         authorPayments.createIndex("by_date", "date");
         authorPayments.createIndex("by_timestamp", "timestamp");
+      }
+
+      if (!db.objectStoreNames.contains(DEBTS_STRING)) {
+        const debts = db.createObjectStore(DEBTS_STRING, {
+          keyPath: "id",
+          autoIncrement: true,
+        });
+        debts.createIndex("by_ab", "ab");
+        debts.createIndex("by_authorId", "authorId");
+        debts.createIndex("by_bookId", "bookId");
+        debts.createIndex("by_date", "date");
+        debts.createIndex("by_timestamp", "timestamp");
       }
 
       if (!db.objectStoreNames.contains(SALES_STRING)) {

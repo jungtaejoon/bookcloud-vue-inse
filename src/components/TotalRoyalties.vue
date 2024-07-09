@@ -8,7 +8,6 @@
           {{ quarter }}
         </option>
       </select>
-      <button @click="fetchRoyaltiesForAllAuthors">인세 요약 조회</button>
     </div>
 
     <table v-if="authorRoyalties.length > 0">
@@ -65,10 +64,6 @@ const yes24IdNumber = store.state.YES_24_ID_NUMBER;
 const kyoboIdNumber = store.state.KYOBO_ID_NUMBER;
 const youngpoongIdNumber = store.state.YOUNGPOONG_ID_NUMBER;
 
-const books = computed(() => store.state.books);
-const sales = computed(() => store.state.sales);
-const authorContracts = computed(() => store.state.authorContracts);
-
 const selectedQuarter = ref("");
 const quarters = computed(() =>
   Array.from(new Set(store.state.sales.map((sale) => sale.quarter))).sort(),
@@ -76,6 +71,27 @@ const quarters = computed(() =>
 const authorRoyalties = ref([]);
 const modifiedSalesMapByISBNQuarter = new Map();
 const modifiedContractsMapByAuthorAndBookId = new Map();
+
+onMounted(async () => {
+  await store.dispatch("fetchAuthors");
+  await store.dispatch("fetchBooks");
+  await store.dispatch("fetchSales");
+  await store.dispatch("fetchAuthorContracts");
+  updateModifiedSalesMap();
+  updateModifiedContractsMapByAuthorAndBookId();
+});
+
+watch(selectedQuarter, async () => {
+  await fetchRoyaltiesForAllAuthors();
+});
+
+watch(store.state.sales, () => {
+  updateModifiedSalesMap();
+});
+
+watch(store.state.authors, () => {
+  updateModifiedContractsMapByAuthorAndBookId();
+});
 
 const updateModifiedSalesMap = () => {
   store.state.sales.forEach((sale) => {
@@ -119,27 +135,12 @@ const updateModifiedContractsMapByAuthorAndBookId = () => {
   });
 };
 
-watch(store.state.sales, () => {
-  updateModifiedSalesMap();
-});
-
-watch(store.state.authors, () => {
-  updateModifiedContractsMapByAuthorAndBookId();
-});
-
 // 전체 인세 합계를 계산
 const totalRoyaltiesSum = computed(() => {
   return authorRoyalties.value.reduce((sum, royalty) => sum + royalty.royaltyPaper + royalty.royaltyEBook, 0, ).toLocaleString();
 });
 
-onMounted(async () => {
-  await store.dispatch("fetchAuthors");
-  await store.dispatch("fetchBooks");
-  await store.dispatch("fetchSales");
-  await store.dispatch("fetchAuthorContracts");
-  updateModifiedSalesMap();
-  updateModifiedContractsMapByAuthorAndBookId();
-});
+
 
 const fetchRoyaltiesForAllAuthors = async () => {
   if (!selectedQuarter.value) return;
@@ -150,7 +151,7 @@ const fetchRoyaltiesForAllAuthors = async () => {
       const key = makeKey(selectedQuarter.value, royalty.author.id, royalty.book.id);
       const noNeed = await store.dispatch("getRoyaltyByQAB", key);
       if(!noNeed) {
-        await store.dispatch("addRoyalty", {
+        await store.dispatch("addAuthorRoyalty", {
           qab: key,
           quarter: selectedQuarter.value,
           authorId: royalty.author.id,
@@ -187,6 +188,8 @@ function calculateRoyaltiesForAllAuthorsByBooks(quarter) {
       royaltyPaper: royaltyPaper,
       royaltyEBook: royaltyEBook,
       sumRoyalty: sumRoyalty,
+      paperPaid: false,
+      eBookPaid: false,
     });
   });
   return royalties;
@@ -219,7 +222,7 @@ function calculateRoyaltiesForAllAuthorsByBooks(quarter) {
   margin-right: auto;
 }
 
-.royalties-summary-container .filters button.save-royalties-button {
+.royalties-summary-container .filters button {
   margin-left: auto;
 }
 
