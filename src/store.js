@@ -581,6 +581,21 @@ export const store = createStore({
         getRequest.onerror = () => reject(getRequest.error);
       });
     },
+    async getAuthorPaymentsByAb({ commit }, ab) {
+      const db = await getDB();
+      if (!db) {
+        console.error("DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["authorPayments"]);
+      const objectStore = transaction.objectStore("authorPayments");
+      const index = objectStore.index("by_ab");
+      return await new Promise((resolve, reject) => {
+        const request = index.getAll(ab);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    },
     async fetchAuthorPayments({ commit }) {
       const db = await getDB();
       if (!db) {
@@ -604,7 +619,7 @@ export const store = createStore({
       }
       const transaction = db.transaction(["debts"], "readwrite");
       const objectStore = transaction.objectStore("debts");
-      await new Promise((resolve, reject) => {
+      return await new Promise((resolve, reject) => {
         const request = objectStore.add(dept);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
@@ -626,6 +641,35 @@ export const store = createStore({
           deleteRequest.onsuccess = () => resolve(deleteRequest.result);
         };
         getRequest.onerror = () => reject(getRequest.error);
+      });
+    },
+    async getDebt({ commit }, debtId) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["debts"], "readwrite");
+      const objectStore = transaction.objectStore("debts");
+      return await new Promise((resolve, reject) => {
+        const getRequest = objectStore.get(debtId);
+        getRequest.onsuccess = () => resolve(getRequest.result);
+        getRequest.onerror = () => reject(getRequest.error);
+      });
+    },
+    async getDebtsByAb({ commit }, ab) {
+      const db = await getDB();
+      if (!db) {
+        console.error("DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["debts"]);
+      const objectStore = transaction.objectStore("debts");
+      const index = objectStore.index("by_ab");
+      return await new Promise((resolve, reject) => {
+        const request = index.getAll(ab);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
       });
     },
     async fetchDebts({ commit }) {

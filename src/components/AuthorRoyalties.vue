@@ -24,12 +24,14 @@
         <th>종이책 인세</th>
         <th>종이책 인세 국세</th>
         <th>종이책 인세 지방세</th>
-        <th>종이책 인세 세후</th>
+        <th>선지급 및 기타 잔액</th>
+        <th>종이책 실수령액</th>
         <th>종이책 지급</th>
         <th>전자책 인세</th>
         <th>전자책 인세 국세</th>
         <th>전자책 인세 지방세</th>
-        <th>전자책 인세 세후</th>
+        <th>선지급 및 기타 잔액</th>
+        <th>전자책 인세 실수령액</th>
         <th>전자책 지급</th>
         <th>인세합</th>
       </tr>
@@ -47,7 +49,8 @@
         <td class="text-right">{{ authorRoyalty.royalty.royaltyPaper.toLocaleString() }}</td>
         <td class="text-right">{{ authorRoyalty.royalty.royaltyPaperNationalTax.toLocaleString() }}</td>
         <td class="text-right">{{ authorRoyalty.royalty.royaltyPaperCountryTax.toLocaleString() }}</td>
-        <td class="text-right">{{ authorRoyalty.royalty.royaltyPaperAfterTax.toLocaleString() }}</td>
+        <td class="text-right">{{ authorRoyalty.balance.toLocaleString() }}</td>
+        <td class="text-right">{{ authorRoyalty.netPay.toLocaleString() }}</td>
         <td class="text-right">
           <button class="submit-button" @click="submitPayment(authorRoyalty.id, true)"
                   v-if="authorRoyalty.royalty.paperPaid !== true">지급
@@ -57,7 +60,8 @@
         <td class="text-right">{{ authorRoyalty.royalty.royaltyEBook.toLocaleString() }}</td>
         <td class="text-right">{{ authorRoyalty.royalty.royaltyEBookNationalTax.toLocaleString() }}</td>
         <td class="text-right">{{ authorRoyalty.royalty.royaltyEBookCountryTax.toLocaleString() }}</td>
-        <td class="text-right">{{ authorRoyalty.royalty.royaltyEBookAfterTax.toLocaleString() }}</td>
+        <td class="text-right">{{ authorRoyalty.balanceEBook.toLocaleString() }}</td>
+        <td class="text-right">{{ authorRoyalty.netPayEBook.toLocaleString() }}</td>
         <td class="text-right">
           <button class="submit-button" @click="submitPayment(authorRoyalty.id, false)"
                   v-if="authorRoyalty.royalty.eBookPaid !== true">지급
@@ -212,6 +216,7 @@ const makeKey = (quarter, authorId, bookId) => {
 const fetchRoyaltiesForAllAuthors = async () => {
   if (!selectedQuarter.value) return;
   const temp = await store.dispatch("getRoyaltiesByQuarter", selectedQuarter.value);
+  const temp4 = ref([]);
   if (temp.length === 0) {
     const rawRoyalties = calculateRoyaltiesForAllAuthorsByBooks(selectedQuarter.value);
     const temp2 = rawRoyalties.filter((royalty) => royalty.sumRoyalty > 0);
@@ -228,17 +233,34 @@ const fetchRoyaltiesForAllAuthors = async () => {
           royalty: toRaw(royalty),
         }
         if(!noNeed) {
+          authorRoyalty.debtId = await addDebt(authorRoyalty, selectedQuarter.value);
           await store.dispatch("addAuthorRoyalty", authorRoyalty)
-          await addDebt(authorRoyalty, selectedQuarter.value);
         }
         temp3.push(authorRoyalty);
       }
     });
     await Promise.all(promises);
-    authorRoyalties.value = temp3;
+    temp4.value = temp3;
   } else {
-    authorRoyalties.value = temp;
+    temp4.value = temp;
   }
+  const promises = temp4.value.map(async (authorRoyalty) => {
+    const targetDebt = await store.dispatch("getDebt", authorRoyalty.debtId);
+    const debts = await store.dispatch("getDebtsByAb", targetDebt.ab);
+    const targetDebts = debts.filter((debt) => debt.date < targetDebt.date);
+    const payments = await store.dispatch("getAuthorPaymentsByAb", targetDebt.ab);
+    const targetPayments = payments.filter((payment) => payment.date < targetDebt.date);
+    const totalDebt = targetDebts.reduce((total, debt) => total + debt.amount, 0);
+    const totalPayment = targetPayments.reduce((total, payment) => total + payment.amount, 0);
+    authorRoyalty.balance = totalPayment - totalDebt;
+    authorRoyalty.netPay = authorRoyalty.royalty.royaltyPaperAfterTax - authorRoyalty.balance;
+    authorRoyalty.balanceEBook = authorRoyalty.balance - authorRoyalty.royalty.royaltyPaperAfterTax + (authorRoyalty.netPay < 0 ? 0 : authorRoyalty.netPay);
+    authorRoyalty.netPayEBook = authorRoyalty.royalty.royaltyEBookAfterTax - authorRoyalty.balanceEBook;
+    return authorRoyalty;
+  })
+  authorRoyalties.value = await Promise.all(promises);
+  // console.log(promises.value);
+  // authorRoyalties.value = temp4.value;
 };
 
 const addDebt = async (targetAuthorRoyalty, quarter) => {
@@ -260,7 +282,7 @@ const addDebt = async (targetAuthorRoyalty, quarter) => {
     timestamp: new Date().toISOString(),
     amount,
   };
-  await store.dispatch("saveDebt", debt);  // Save to Vuex or server
+  return await store.dispatch("saveDebt", debt);  // Save to Vuex or server
 };
 
 
@@ -291,7 +313,7 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
     ...targetAuthorRoyalty,
     royalty: toRaw(targetRoyalty),
   });
-  authorRoyalties.value = await store.dispatch("getRoyaltiesByQuarter", selectedQuarter.value);
+  await fetchRoyaltiesForAllAuthors();
 };
 
 
