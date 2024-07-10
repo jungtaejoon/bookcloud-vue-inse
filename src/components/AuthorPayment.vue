@@ -54,7 +54,7 @@
           <td>{{ payment.bookTitle }}</td>
           <td>{{ payment.date }}</td>
           <td>{{ payment.timestamp }}</td>
-          <td>{{ payment.amount }}</td>
+          <td>{{ payment.amount.toLocaleString() }}</td>
           <td>
             <button @click="deletePayment(payment.id)">삭제</button>
           </td>
@@ -145,6 +145,7 @@ const sortBy = (key) => {
 const resetForm = () => {
   selectedAuthorId.value = '';
   selectedBookId.value = "";
+  paymentDate.value = new Date().toISOString().substring(0, 10);
   authorBooks.value = [];
   amount.value = '';
 };

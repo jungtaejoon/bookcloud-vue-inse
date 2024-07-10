@@ -288,7 +288,7 @@ const addDebt = async (targetAuthorRoyalty, quarter) => {
 
 const submitPayment = async (authorRoyaltyId, isPaper) => {
   const targetAuthorRoyalty = authorRoyalties.value.find((authorRoyalty) => authorRoyalty.id === authorRoyaltyId);
-  const amount = isPaper ? parseInt(targetAuthorRoyalty.royalty.royaltyPaperAfterTax) : parseInt(targetAuthorRoyalty.royalty.royaltyEBookAfterTax);
+  const amount = isPaper ? parseInt(targetAuthorRoyalty.netPay < 0 ? 0 : targetAuthorRoyalty.netPay) : parseInt(targetAuthorRoyalty.netPayEBook < 0 ? 0 : targetAuthorRoyalty.netPayEBook);
   const date = ref("");
   switch (selectedQuarter.value.slice(-1)) {
     case "1": date.value = `${selectedQuarter.value.slice(0, 4)}-04-15`; break;

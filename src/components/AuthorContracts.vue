@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
 
 const store = useStore();
@@ -8,7 +8,8 @@ const sortedBooks = computed(() => [...store.state.books].sort((a, b) => a.title
 const sortedAuthorContracts = computed(() => [...store.state.authorContracts].sort((a, b) => getAuthorName(a.authorId).localeCompare(getAuthorName(b.authorId))));
 const selectedAuthorId = ref('');
 const selectedBookId = ref('');
-const royaltyRate = ref('');
+const royaltyRatePaper = ref('');
+const royaltyRateEBook = ref('');
 
 onMounted(async () => {
   await store.dispatch("fetchAuthors");
@@ -39,7 +40,8 @@ const deleteAuthorContract = async (authorContractId) => {
 const resetForm = () => {
   selectedAuthorId.value = '';
   selectedBookId.value = '';
-  royaltyRate.value = '';
+  royaltyRatePaper.value = '';
+  royaltyRateEBook.value = '';
 };
 
 </script>
