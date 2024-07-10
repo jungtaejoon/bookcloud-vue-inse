@@ -8,6 +8,7 @@
           {{ quarter }}
         </option>
       </select>
+      <button @click="submitRoyalties" class="submit-button">추가</button>
     </div>
 
     <table v-if="authorRoyalties.length > 0">
@@ -85,6 +86,7 @@
 <script setup>
 import {ref, computed, onMounted, toRaw, watch} from "vue";
 import {useStore} from "vuex";
+import createExcelOfPaperRoyalties from "./createExcelOfPaperRoyalties.js";
 
 const selectedQuarter = ref("");
 const authorRoyalties = ref([]);
@@ -222,7 +224,7 @@ const fetchRoyaltiesForAllAuthors = async () => {
     const temp2 = rawRoyalties.filter((royalty) => royalty.sumRoyalty > 0);
     const temp3 = [];
     const promises = temp2.map(async (royalty) => {
-      if(royalty.sumRoyalty > 0) {
+      if (royalty.sumRoyalty > 0) {
         const key = makeKey(selectedQuarter.value, royalty.author.id, royalty.book.id);
         const noNeed = await store.dispatch("getRoyaltyByQAB", key);
         const authorRoyalty = {
@@ -232,7 +234,7 @@ const fetchRoyaltiesForAllAuthors = async () => {
           bookId: royalty.book.id,
           royalty: toRaw(royalty),
         }
-        if(!noNeed) {
+        if (!noNeed) {
           authorRoyalty.debtId = await addDebt(authorRoyalty, selectedQuarter.value);
           await store.dispatch("addAuthorRoyalty", authorRoyalty)
         }
@@ -267,10 +269,18 @@ const addDebt = async (targetAuthorRoyalty, quarter) => {
   const amount = parseInt(targetAuthorRoyalty.royalty.royaltyPaperAfterTax) + parseInt(targetAuthorRoyalty.royalty.royaltyEBookAfterTax);
   const date = ref("");
   switch (quarter.slice(-1)) {
-    case "1": date.value = `${quarter.slice(0, 4)}-04-01`; break;
-    case "2": date.value = `${quarter.slice(0, 4)}-07-01`; break;
-    case "3": date.value = `${quarter.slice(0, 4)}-10-01`; break;
-    case "4": date.value = `${parseInt(quarter.slice(0, 4)) + 1}-01-01`; break;
+    case "1":
+      date.value = `${quarter.slice(0, 4)}-04-01`;
+      break;
+    case "2":
+      date.value = `${quarter.slice(0, 4)}-07-01`;
+      break;
+    case "3":
+      date.value = `${quarter.slice(0, 4)}-10-01`;
+      break;
+    case "4":
+      date.value = `${parseInt(quarter.slice(0, 4)) + 1}-01-01`;
+      break;
   }
   const debt = {
     ab: `${targetAuthorRoyalty.authorId}/${targetAuthorRoyalty.bookId}`,
@@ -291,10 +301,18 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
   const amount = isPaper ? parseInt(targetAuthorRoyalty.netPay < 0 ? 0 : targetAuthorRoyalty.netPay) : parseInt(targetAuthorRoyalty.netPayEBook < 0 ? 0 : targetAuthorRoyalty.netPayEBook);
   const date = ref("");
   switch (selectedQuarter.value.slice(-1)) {
-    case "1": date.value = `${selectedQuarter.value.slice(0, 4)}-04-15`; break;
-    case "2": date.value = `${selectedQuarter.value.slice(0, 4)}-07-15`; break;
-    case "3": date.value = `${selectedQuarter.value.slice(0, 4)}-10-15`; break;
-    case "4": date.value = `${parseInt(selectedQuarter.value.slice(0, 4)) + 1}-01-15`; break;
+    case "1":
+      date.value = `${selectedQuarter.value.slice(0, 4)}-04-15`;
+      break;
+    case "2":
+      date.value = `${selectedQuarter.value.slice(0, 4)}-07-15`;
+      break;
+    case "3":
+      date.value = `${selectedQuarter.value.slice(0, 4)}-10-15`;
+      break;
+    case "4":
+      date.value = `${parseInt(selectedQuarter.value.slice(0, 4)) + 1}-01-15`;
+      break;
   }
   const payment = {
     ab: `${targetAuthorRoyalty.authorId}/${targetAuthorRoyalty.bookId}`,
@@ -315,6 +333,20 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
   });
   await fetchRoyaltiesForAllAuthors();
 };
+
+const submitRoyalties = async () => {
+  const targetAuthorIds = new Set();
+  authorRoyalties.value.forEach((authorRoyalty) => {
+    targetAuthorIds.add(authorRoyalty.authorId);
+  });
+  const targetAuthors = store.state.authors.filter((author) => targetAuthorIds.has(author.id));
+  const promises = targetAuthors.map(async (author) => {
+    await createExcelOfPaperRoyalties(author, selectedQuarter.value, authorRoyalties.value);
+  });
+  await Promise.all(promises);
+};
+
+
 
 
 </script>
