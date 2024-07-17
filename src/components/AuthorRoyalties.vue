@@ -86,7 +86,7 @@
 <script setup>
 import {ref, computed, onMounted, toRaw, watch} from "vue";
 import {useStore} from "vuex";
-import createExcelOfPaperRoyalties from "./createExcelOfPaperRoyalties.js";
+import createExcelOfPaperRoyalties from "../utils/createExcelOfPaperRoyalties.js";
 
 const selectedQuarter = ref("");
 const authorRoyalties = ref([]);

@@ -44,6 +44,10 @@ store.state.ALADIN_ID_NUMBER = "00000001";
 store.state.YES_24_ID_NUMBER = "00000002";
 store.state.KYOBO_ID_NUMBER = "00000003";
 store.state.YOUNGPOONG_ID_NUMBER = "00000004";
+store.state.ALADIN_EBOOK_ID_NUMBER = "00000005";
+store.state.YES_24_EBOOK_ID_NUMBER = "00000006";
+store.state.KYOBO_EBOOK_ID_NUMBER = "00000007";
+store.state.MILLI_EBOOK_ID_NUMBER = "00000008";
 
 const downloadData = async () => {
   // 데이터를 문자열로 변환

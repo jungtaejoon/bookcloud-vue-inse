@@ -1,11 +1,12 @@
 const DB_NAME = "INSE";
-const DB_VERSION = 9;
+const DB_VERSION = 11;
 const AUTHORS_STRING = "authors";
 const BOOKS_STRING = "books";
 const BOOK_STORES_STRING = "bookStores";
 const AUTHOR_PAYMENTS_STRING = "authorPayments";
 const DEBTS_STRING = "debts";
 const SALES_STRING = "sales";
+const EBOOK_SALES_STRING = "ebookSales";
 const AUTHOR_CONTRACTS_STRING = "authorContracts";
 const BOOK_STORE_EXCEL_KEY_AND_NAME_STRING = "bookStoreExcelKeyAndName";
 const ROYALTIES_STRING = "authorRoyalties";
@@ -83,7 +84,13 @@ const initDB = () => {
       }
 
       if (!db.objectStoreNames.contains(SALES_STRING)) {
-        db.createObjectStore(SALES_STRING, { keyPath: "id", autoIncrement: true });
+        const sales = db.createObjectStore(SALES_STRING, { keyPath: "id", autoIncrement: true });
+        sales.createIndex("by_quarter", "quarter");
+      }
+
+      if (!db.objectStoreNames.contains(EBOOK_SALES_STRING)) {
+        const ebookSales = db.createObjectStore(EBOOK_SALES_STRING, { keyPath: "id", autoIncrement: true });
+        ebookSales.createIndex("by_quarter", "quarter");
       }
 
       if (!db.objectStoreNames.contains(BOOK_STORE_EXCEL_KEY_AND_NAME_STRING)) {

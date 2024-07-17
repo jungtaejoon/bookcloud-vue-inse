@@ -41,7 +41,8 @@
         v-if="
           (tempHeaders === YES_24_HEADER_STRING ||
             tempHeaders === KYOBO_HEADER_STRING ||
-            tempHeaders === YOUNGPOONG_HEADER_STRING) &&
+            tempHeaders === YOUNGPOONG_HEADER_STRING ||
+            tempHeaders === YES_24_EBOOK_HEADER_STRING) &&
           processSwitch === 3
         "
       >
@@ -192,9 +193,10 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, watch, inject, computed, toRaw } from "vue";
+import { ref, nextTick, onMounted, computed, toRaw } from "vue";
 import * as XLSX from 'xlsx';
 import { useStore } from "vuex";
+import similarityByPrefix from "../utils/textComparison.js";
 
 const store = useStore();
 
@@ -216,14 +218,18 @@ const aladinIdNumber = store.state.ALADIN_ID_NUMBER;
 const yes24IdNumber = store.state.YES_24_ID_NUMBER;
 const kyoboIdNumber = store.state.KYOBO_ID_NUMBER;
 const youngpoongIdNumber = store.state.YOUNGPOONG_ID_NUMBER;
+const aladinEBookIdNumber = store.state.ALADIN_EBOOK_ID_NUMBER;
+const yes24EBookIdNumber = store.state.YES_24_EBOOK_ID_NUMBER;
+const kyoboEBookIdNumber = store.state.KYOBO_EBOOK_ID_NUMBER;
+const milliEBookIdNumber = store.state.MILLI_EBOOK_ID_NUMBER;
 
-const GITA_HEADER_STRING =
-  "NO,매출일자,구분,위치,서점코드,서  점  명,도서코드,도   서    명,과세구분,ISBN,정가,부수,%,금   액";
-const YES_24_HEADER_STRING =
-  "순위,상품번호,상품명,관리분류,유통상태,제조사,ISBN10,ISBN13,바코드,기간중판매량,기간중 매출액,전월판매량,당월판매량,남성비중,여성비중,PC,MOBILE,eBook Reader";
+
+const GITA_HEADER_STRING = "NO,매출일자,구분,위치,서점코드,서  점  명,도서코드,도   서    명,과세구분,ISBN,정가,부수,%,금   액";
+const YES_24_HEADER_STRING = "순위,상품번호,상품명,관리분류,유통상태,제조사,ISBN10,ISBN13,바코드,기간중판매량,기간중 매출액,전월판매량,당월판매량,남성비중,여성비중,PC,MOBILE,eBook Reader";
 const KYOBO_HEADER_STRING = "ISBN,상품명,출판일자,저자,출판사,정가,판매";
-const YOUNGPOONG_HEADER_STRING =
-  "바코드,도서명,정가,저자,출판사명,자재그룹내역,판매수량,발행일,과세구분";
+const YOUNGPOONG_HEADER_STRING = "바코드,도서명,정가,저자,출판사명,자재그룹내역,판매수량,발행일,과세구분";
+const ALADIN_EBOOK_HEADER_STRING = "바코드,도서명,정가,저자,출판사명,자재그룹내역,판매수량,발행일,과세구분";
+const YES_24_EBOOK_HEADER_STRING = "도서명,총 판매건수,총 정산액,B2C 판매건수,B2C 정산금액,B2B 판매건수,B2B 정산금액,B2BC 판매건수,B2BC 정산금액";
 
 const isLoading = ref(false);
 const isSuccess = ref(false);
@@ -233,9 +239,12 @@ const bookStoreExcelKeyAndName = computed(
   () => store.state.bookStoreExcelKeyAndName,
 );
 const bookStores = computed(() => store.state.bookStores);
+const books = computed(() => store.state.books);
 
 onMounted(async () => {
+  await store.dispatch("fetchBookStores");
   await store.dispatch("fetchBookStoreExcelKeyAndName");
+  await store.dispatch("fetchBooks");
 });
 
 
@@ -257,8 +266,8 @@ const onChange = (event) => {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const json = XLSX.utils.sheet_to_json(worksheet, {header:1});
-    console.log(json);
     tempCollection.value = json;
+    console.log(json);
     checkDb(json); // 데이터 처리 함수, 적절히 구현 필요
   };
   reader.readAsArrayBuffer(uploadedFile);
@@ -300,6 +309,7 @@ const checkDb = (value) => {
     setTimeout(() => {
       if (value !== null) {
         const headers = value[0].toString();
+        console.log(headers);
         if (
           (!bookStoreExcelKeyAndName.value.length && headers) ||
           !bookStoreExcelKeyAndName.value.find(
@@ -412,6 +422,20 @@ const checkExist = async (bookStoreIdNumber, selectedYearQuarter) => {
   }
 };
 
+const checkExistEBook = async (bookStoreIdNumber, selectedYearQuarter) => {
+  const existingData = await store.dispatch("fetchSalesDataEBook", {
+    bookStoreId: bookStoreIdNumber,
+    yearQuarter: selectedYearQuarter,
+  });
+  console.log(existingData);
+  if (existingData.length > 0) {
+    // 중복 데이터 발견
+    throw new Error(
+        `이미 데이터가 업로드되었습니다: 서점 ID ${bookStoreIdNumber}, 년도/분기 ${selectedYearQuarter}`,
+    );
+  }
+};
+
 const yes24SalesAdd = async (bookStoreIdNumber, quarter) => {
   if (tempHeaders.value === YES_24_HEADER_STRING) {
     const bookStore = store.state.bookStores.find(
@@ -473,48 +497,6 @@ const youngpoongSalesAdd = async (bookStoreIdNumber, quarter) => {
   }
 };
 
-const addSaleByBookStore = async () => {
-  console.log(salesData.value);
-  console.log(tempCollection.value);
-  isLoading.value = true; // 로딩 시작
-  isSuccess.value = false; // 초기 상태 재설정
-  errorMessage.value = ""; // 초기 상태 재설정
-  let dateKeyString = "";
-  let quarter = "";
-
-  try {
-    switch (tempHeaders.value) {
-      case GITA_HEADER_STRING:
-        dateKeyString = "매출일자";
-        quarter = getQuarter(tempCollection.value[0], dateKeyString);
-        await checkExist(gitaIdNumber, quarter);
-        await gitaSalesAdd(gitaIdNumber, dateKeyString);
-        break;
-      case YES_24_HEADER_STRING:
-        await checkExist(yes24IdNumber, inputQuarter.value);
-        await yes24SalesAdd(yes24IdNumber, inputQuarter.value);
-        break;
-      case KYOBO_HEADER_STRING:
-        await checkExist(kyoboIdNumber, inputQuarter.value);
-        await kyoboSalesAdd(kyoboIdNumber, inputQuarter.value);
-        break;
-      case YOUNGPOONG_HEADER_STRING:
-        await checkExist(youngpoongIdNumber, inputQuarter.value);
-        await youngpoongSalesAdd(youngpoongIdNumber, inputQuarter.value);
-        break;
-    }
-    isSuccess.value = true;
-    alert("데이터가 성공적으로 업로드되었습니다."); // 성공 알림
-  } catch (error) {
-    // 에러 피드백 설정
-    console.log(error);
-    errorMessage.value = `오류가 발생했습니다: ${error.message}`;
-    alert(errorMessage.value); // 에러 알림
-  } finally {
-    isLoading.value = false; // 로딩 종료
-  }
-};
-
 const addAladinSale = async () => {
   isLoading.value = true; // 로딩 시작
   isSuccess.value = false; // 초기 상태 재설정
@@ -528,7 +510,7 @@ const addAladinSale = async () => {
     if (existingData.length > 0) {
       // 중복 데이터 발견
       throw new Error(
-        `이미 데이터가 업로드되었습니다: 서점 ID ${aladinIdNumber}, 년도/분기 ${inputQuarter.value}`,
+          `이미 데이터가 업로드되었습니다: 서점 ID ${aladinIdNumber}, 년도/분기 ${inputQuarter.value}`,
       );
     }
     for (const i of salesData.value) {
@@ -549,6 +531,87 @@ const addAladinSale = async () => {
     isLoading.value = false; // 로딩 종료
   }
 };
+
+const addSaleByBookStore = async () => {
+  console.log(salesData.value);
+  console.log(tempCollection.value);
+  isLoading.value = true; // 로딩 시작
+  isSuccess.value = false; // 초기 상태 재설정
+  errorMessage.value = ""; // 초기 상태 재설정
+  let dateKeyString = "";
+  let quarter = "";
+  try {
+    switch (tempHeaders.value) {
+      case GITA_HEADER_STRING:
+        dateKeyString = "매출일자";
+        quarter = getQuarter(tempCollection.value[0], dateKeyString);
+        await checkExist(gitaIdNumber, quarter);
+        await gitaSalesAdd(gitaIdNumber, dateKeyString);
+        break;
+      case YES_24_HEADER_STRING:
+        await checkExist(yes24IdNumber, inputQuarter.value);
+        await yes24SalesAdd(yes24IdNumber, inputQuarter.value);
+        break;
+      case KYOBO_HEADER_STRING:
+        await checkExist(kyoboIdNumber, inputQuarter.value);
+        await kyoboSalesAdd(kyoboIdNumber, inputQuarter.value);
+        break;
+      case YOUNGPOONG_HEADER_STRING:
+        await checkExist(youngpoongIdNumber, inputQuarter.value);
+        await youngpoongSalesAdd(youngpoongIdNumber, inputQuarter.value);
+        break;
+      case ALADIN_EBOOK_HEADER_STRING:
+        break;
+      case YES_24_EBOOK_HEADER_STRING:
+        await checkExistEBook(yes24EBookIdNumber, inputQuarter.value);
+        await addYes24EBookSales(inputQuarter.value);
+        break;
+    }
+    isSuccess.value = true;
+    alert("데이터가 성공적으로 업로드되었습니다."); // 성공 알림
+  } catch (error) {
+    // 에러 피드백 설정
+    console.log(error);
+    errorMessage.value = `오류가 발생했습니다: ${error.message}`;
+    alert(errorMessage.value); // 에러 알림
+  } finally {
+    isLoading.value = false; // 로딩 종료
+  }
+};
+
+const addYes24EBookSales = async (quarter) => {
+  if (tempHeaders.value === YES_24_EBOOK_HEADER_STRING) {
+    const bookStore = store.state.bookStores.find(
+        (obj) => obj.idNumber === yes24EBookIdNumber,
+    );
+    for (const i of tempCollection.value.slice(1, -1)) {
+      console.log(i[0]);
+      console.log(findISBNByBookTitle(i[0], true));
+      // const sale = {
+      //   ISBN: i[0],
+      //   amount: i[6],
+      //   quarter: quarter,
+      //   bookStore: toRaw(bookStore),
+      // };
+      // await store.dispatch("addSaleEBook", {
+      //   sale: sale,
+      // });
+      // await store.dispatch("fetchBookStoreExcelKeyAndName");
+    }
+  }
+};
+
+const findISBNByBookTitle = (title, isEbook) => {
+  const targetBook = books.value.filter((book) => similarityByPrefix(book.title, title) > 60);
+  if (targetBook.length > 1) {
+    throw new Error("유사도가 높은 책이 2권 이상 발견");
+  } else if (targetBook.length === 1) {
+    console.log(targetBook[0]);
+    return isEbook ? targetBook[0].isbnEBook : targetBook[0].isbnPaper;
+  }
+
+};
+
 </script>
 
 <style scoped>
@@ -690,12 +753,6 @@ h2 {
   font-weight: bold;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
 .data-table th,
 .data-table td {
   padding: 0.5rem;
@@ -712,10 +769,6 @@ input[type="file"] {
   margin: 0 auto;
 }
 .btn {
-  margin: 0.5rem 0;
-}
-
-.form-select {
   margin: 0.5rem 0;
 }
 

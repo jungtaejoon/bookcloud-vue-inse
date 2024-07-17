@@ -386,23 +386,37 @@ export const store = createStore({
       }
       const transaction = db.transaction(["sales"]);
       const objectStore = transaction.objectStore("sales");
+      const index = objectStore.index("by_quarter")
       // 필터링된 데이터 반환
       return await new Promise((resolve, reject) => {
         // 모든 판매 데이터를 조회
-        const request = objectStore.getAll();
-        request.onsuccess = () => {
-          // 조회된 판매 데이터 중에서 특정 서점 ID와 년도/분기에 해당하는 데이터만 필터링
-          const filteredSales = request.result.filter((sale) => {
-            return (
-                sale.bookStore.idNumber === bookStoreId &&
-                sale.quarter === yearQuarter
-            );
-          });
+        const request = index.getAll(yearQuarter);
+        request.onsuccess = (e) => {
+          const filteredSales = e.target.result.filter((sale) => sale.bookStore.idNumber === bookStoreId);
           resolve(filteredSales);
         };
         request.onerror = () => reject(request.error);
       });
     },
+    async fetchSalesDataEBook({ commit }, { bookStoreId, yearQuarter }) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["ebookSales"]);
+      const objectStore = transaction.objectStore("ebookSales");
+      // 필터링된 데이터 반환
+      const index = objectStore.index("by_quarter")
+      // 필터링된 데이터 반환
+      return await new Promise((resolve, reject) => {
+        // 모든 판매 데이터를 조회
+        const request = index.getAll(yearQuarter);
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = () => reject(request.error);
+      });
+    },
+
     async addSale({ commit }, { sale }) {
       const db = await getDB();
       if (!db) {
@@ -417,6 +431,22 @@ export const store = createStore({
         request.onerror = () => reject(request.error);
       });
     },
+
+    async addSaleEBook({ commit }, sale) {
+      const db = await getDB();
+      if (!db) {
+        console.error(commit + "DB is not initialized yet");
+        return;
+      }
+      const transaction = db.transaction(["ebookSales"], "readwrite");
+      const objectStore = transaction.objectStore("ebookSales");
+      await new Promise((resolve, reject) => {
+        const request = objectStore.add(sale);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    },
+
     async updateSale({ commit }, { sale }) {
       const db = await getDB();
       if (!db) {

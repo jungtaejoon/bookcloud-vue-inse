@@ -46,10 +46,10 @@
       <h3 v-if="updateModal">책 정보 수정</h3>
       <h3 v-else>책 추가</h3>
       <label>제목: <input v-model="tempBook.title" /></label>
-      <label>종이책 ISBN: <input v-model="tempBook.isbnPaper" /></label>
-      <label>종이책 정가: <input v-model="tempBook.pricePaper" /></label>
-      <label>전자책 ISBN: <input v-model="tempBook.isbnEBook" /></label>
-      <label>전자책 정가: <input v-model="tempBook.priceEBook" /></label>
+      <label>종이책 ISBN: <input v-model="tempBook.isbnPaper" @input="filterNumericInput('isbnPaper')" /></label>
+      <label>종이책 정가: <input v-model="tempBook.pricePaper" @input="filterNumericInput('pricePaper')" /></label>
+      <label>전자책 ISBN: <input v-model="tempBook.isbnEBook" @input="filterNumericInput('isbnEBook')" /></label>
+      <label>전자책 정가: <input v-model="tempBook.priceEBook" @input="filterNumericInput('priceEBook')" /></label>
       <button v-if="updateModal" @click="updateBook" class="submit-button">
         수정 완료
       </button>
@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, watch, onMounted, toRaw } from "vue";
+import {ref, computed, onMounted, toRaw} from "vue";
 import { useStore } from "vuex";
 
 const store = useStore();
@@ -68,7 +68,7 @@ const store = useStore();
 const showModal = ref(false);
 const updateModal = ref(false);
 const editingIndex = ref(-1);
-let tempBook = {};
+const tempBook = ref({});
 
 const books = computed(() => store.state.books);
 const authors = computed(() => store.state.authors);
@@ -84,25 +84,29 @@ const sortedBooks = computed(() => {
   });
 });
 
+function filterNumericInput(field) {
+  tempBook.value[field] = tempBook.value[field].replace(/\D/g, '');
+}
+
 function openModal(bookId) {
   showModal.value = true;
-  tempBook = { ...books.value.find((book) => book.id === bookId) };
+  tempBook.value = { ...books.value.find((book) => book.id === bookId) };
 }
 
 function closeModal() {
   showModal.value = false;
   editingIndex.value = -1;
-  tempBook = {};
+  tempBook.value = {};
 }
 
 const addBook = async () => {
-  await store.dispatch("addBook", tempBook);
+  await store.dispatch("addBook", toRaw(tempBook.value));
   closeModal();
   await store.dispatch("fetchBooks");
 };
 
 const updateBook = async () => {
-  await store.dispatch("updateBook", tempBook);
+  await store.dispatch("updateBook", toRaw(tempBook.value));
   closeModal();
   await store.dispatch("fetchBooks");
 };
@@ -150,7 +154,7 @@ const deleteBook = async (bookId) => {
   border-bottom: 1px solid #e0e0e0;
 }
 
-.book-list-container .book-title {
+.book-list-container {
   flex-grow: 1;
 }
 
