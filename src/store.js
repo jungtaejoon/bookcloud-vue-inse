@@ -432,7 +432,7 @@ export const store = createStore({
       });
     },
 
-    async addSaleEBook({ commit }, sale) {
+    async addSaleEBook({ commit }, { sale }) {
       const db = await getDB();
       if (!db) {
         console.error(commit + "DB is not initialized yet");

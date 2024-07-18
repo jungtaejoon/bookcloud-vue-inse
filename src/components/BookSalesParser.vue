@@ -37,8 +37,8 @@
         엑셀 파일 체크
       </button>
       <div
-        class="mb-3"
-        v-if="
+          class="mb-3"
+          v-if="
           (tempHeaders === YES_24_HEADER_STRING ||
             tempHeaders === KYOBO_HEADER_STRING ||
             tempHeaders === YOUNGPOONG_HEADER_STRING ||
@@ -47,38 +47,38 @@
         "
       >
         <label for="quarterInput" class="form-label"
-          >분기 입력 (예: 2024-1)</label
+        >분기 입력 (예: 2024-1)</label
         >
         <input
-          type="text"
-          id="quarterInput"
-          v-model="inputQuarter"
-          class="form-control"
-          placeholder="예: 2024-1"
+            type="text"
+            id="quarterInput"
+            v-model="inputQuarter"
+            class="form-control"
+            placeholder="예: 2024-1"
         />
       </div>
       <button
-        v-if="processSwitch === 3"
-        class="btn btn-primary"
-        @click="addSaleByBookStore"
+          v-if="processSwitch === 3"
+          class="btn btn-primary"
+          @click="addSaleByBookStore"
       >
         업로드
       </button>
       <input
-        type="file"
-        id="fileInput"
-        @change="onChange"
-        :key="fileKey"
-        style="display: none"
+          type="file"
+          id="fileInput"
+          @change="onChange"
+          :key="fileKey"
+          style="display: none"
       />
     </div>
     <button class="btn btn-info mb-3" @click="showAladinInputModal = true">
       알라딘 입력
     </button>
     <button
-      v-if="salesData.length > 0"
-      class="btn btn-primary"
-      @click="addAladinSale"
+        v-if="salesData.length > 0"
+        class="btn btn-primary"
+        @click="addAladinSale"
     >
       알라딘 업로드
     </button>
@@ -95,21 +95,21 @@
           <div class="modal-body">
             <div class="mb-3">
               <label for="quarterInput" class="form-label"
-                >분기 입력 (예: 2024-1)</label
+              >분기 입력 (예: 2024-1)</label
               >
               <input
-                type="text"
-                id="quarterInput"
-                v-model="inputQuarter"
-                class="form-control"
-                placeholder="예: 2024-1"
+                  type="text"
+                  id="quarterInput"
+                  v-model="inputQuarter"
+                  class="form-control"
+                  placeholder="예: 2024-1"
               />
             </div>
             <textarea
-              class="form-control"
-              rows="10"
-              placeholder="여기에 알라딘 서점 판매 데이터를 복사하여 붙여넣으세요..."
-              @paste="handlePaste"
+                class="form-control"
+                rows="10"
+                placeholder="여기에 알라딘 서점 판매 데이터를 복사하여 붙여넣으세요..."
+                @paste="handlePaste"
             ></textarea>
           </div>
           <div class="modal-footer">
@@ -138,9 +138,9 @@
       서점:
       <select v-model="bookStoreExcelKeyAndName.bookStore">
         <option
-          v-for="bookStore in bookStores"
-          :key="bookStore.id"
-          :value="bookStore"
+            v-for="bookStore in bookStores"
+            :key="bookStore.id"
+            :value="bookStore"
         >
           {{ bookStore.name }}
         </option>
@@ -153,20 +153,20 @@
       <h3 class="mt-4">붙여넣기한 데이터</h3>
       <table class="table table-bordered">
         <thead>
-          <tr>
-            <th>ISBN</th>
-            <th>판매 권수</th>
-            <th>분기</th>
-            <th>서점</th>
-          </tr>
+        <tr>
+          <th>ISBN</th>
+          <th>판매 권수</th>
+          <th>분기</th>
+          <th>서점</th>
+        </tr>
         </thead>
         <tbody>
-          <tr v-for="(sale, index) in salesData" :key="index">
-            <td>{{ sale.ISBN }}</td>
-            <td>{{ sale.quantity }}</td>
-            <td>{{ sale.quarter }}</td>
-            <td>{{ sale.bookStore.name }}</td>
-          </tr>
+        <tr v-for="(sale, index) in salesData" :key="index">
+          <td>{{ sale.ISBN }}</td>
+          <td>{{ sale.quantity }}</td>
+          <td>{{ sale.quarter }}</td>
+          <td>{{ sale.bookStore.name }}</td>
+        </tr>
         </tbody>
       </table>
     </div>
@@ -193,9 +193,9 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, computed, toRaw } from "vue";
+import {ref, nextTick, onMounted, computed, toRaw} from "vue";
 import * as XLSX from 'xlsx';
-import { useStore } from "vuex";
+import {useStore} from "vuex";
 import similarityByPrefix from "../utils/textComparison.js";
 
 const store = useStore();
@@ -224,11 +224,11 @@ const kyoboEBookIdNumber = store.state.KYOBO_EBOOK_ID_NUMBER;
 const milliEBookIdNumber = store.state.MILLI_EBOOK_ID_NUMBER;
 
 
-const GITA_HEADER_STRING = "NO,매출일자,구분,위치,서점코드,서  점  명,도서코드,도   서    명,과세구분,ISBN,정가,부수,%,금   액";
+const GITA_HEADER_STRING = "NO,,매출일자,구분,위치,서점코드,서  점  명,도서코드,도   서    명,과세구분,ISBN,정가,부수,%,금   액,비고";
 const YES_24_HEADER_STRING = "순위,상품번호,상품명,관리분류,유통상태,제조사,ISBN10,ISBN13,바코드,기간중판매량,기간중 매출액,전월판매량,당월판매량,남성비중,여성비중,PC,MOBILE,eBook Reader";
 const KYOBO_HEADER_STRING = "ISBN,상품명,출판일자,저자,출판사,정가,판매";
 const YOUNGPOONG_HEADER_STRING = "바코드,도서명,정가,저자,출판사명,자재그룹내역,판매수량,발행일,과세구분";
-const ALADIN_EBOOK_HEADER_STRING = "바코드,도서명,정가,저자,출판사명,자재그룹내역,판매수량,발행일,과세구분";
+const ALADIN_EBOOK_HEADER_STRING = "발주일,고객(기관명),도서명,저자,출판사,공급사,ItemId,CID,카피수,정가,정가합,입고율,정산액";
 const YES_24_EBOOK_HEADER_STRING = "도서명,총 판매건수,총 정산액,B2C 판매건수,B2C 정산금액,B2B 판매건수,B2B 정산금액,B2BC 판매건수,B2BC 정산금액";
 
 const isLoading = ref(false);
@@ -236,7 +236,7 @@ const isSuccess = ref(false);
 const errorMessage = ref("");
 
 const bookStoreExcelKeyAndName = computed(
-  () => store.state.bookStoreExcelKeyAndName,
+    () => store.state.bookStoreExcelKeyAndName,
 );
 const bookStores = computed(() => store.state.bookStores);
 const books = computed(() => store.state.books);
@@ -265,7 +265,7 @@ const onChange = (event) => {
     const workbook = XLSX.read(data, {type: 'array'});
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const json = XLSX.utils.sheet_to_json(worksheet, {header:1});
+    const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
     tempCollection.value = json;
     console.log(json);
     checkDb(json); // 데이터 처리 함수, 적절히 구현 필요
@@ -311,10 +311,10 @@ const checkDb = (value) => {
         const headers = value[0].toString();
         console.log(headers);
         if (
-          (!bookStoreExcelKeyAndName.value.length && headers) ||
-          !bookStoreExcelKeyAndName.value.find(
-            (bookStoreExcel) => bookStoreExcel.headers === headers,
-          )
+            (!bookStoreExcelKeyAndName.value.length && headers) ||
+            !bookStoreExcelKeyAndName.value.find(
+                (bookStoreExcel) => bookStoreExcel.headers === headers,
+            )
         ) {
           processSwitch.value = 2;
         } else {
@@ -332,7 +332,7 @@ function excelSerialDateToJSDate(excelSerialDate) {
   const hour = 60 * 60 * 1000;
 
   return new Date(
-    Math.round((excelSerialDate - daysBeforeUnixEpoch) * 24 * hour) + 12 * hour,
+      Math.round((excelSerialDate - daysBeforeUnixEpoch) * 24 * hour) + 12 * hour,
   );
 }
 
@@ -341,8 +341,8 @@ function getQuarterFromDate(date) {
   return Math.ceil(month / 3);
 }
 
-const getQuarter = (item, dateKeyString) => {
-  const saleDate = excelSerialDateToJSDate(item[dateKeyString]);
+const getQuarter = (item, dateIndex) => {
+  const saleDate = excelSerialDateToJSDate(item[dateIndex]);
   const quarter = getQuarterFromDate(saleDate); // 분기 계산
   const year = saleDate.getFullYear(); // 년도 추출
   return `${year}-${quarter}`;
@@ -355,7 +355,7 @@ function handlePaste(event) {
 
   const lines = text.trim().split("\n");
   const bookStore = store.state.bookStores.find(
-    (obj) => obj.idNumber === aladinIdNumber,
+      (obj) => obj.idNumber === aladinIdNumber,
   );
   lines.forEach((line) => {
     const items = line.split("\t");
@@ -379,13 +379,16 @@ function closeModal() {
   inputQuarter.value = ""; // 모달을 닫을 때 분기 입력 필드 초기화
 }
 
-const gitaSalesAdd = async (bookStoreIdNumber, dateKeyString) => {
+const gitaSalesAdd = async () => {
   if (tempHeaders.value === GITA_HEADER_STRING) {
     const bookStore = store.state.bookStores.find(
-      (obj) => obj.idNumber === gitaIdNumber,
+        (obj) => obj.idNumber === gitaIdNumber,
     );
-    for (const i of tempCollection.value) {
-      const quarter = getQuarter(i, dateKeyString);
+    const dateIndex = tempCollection.value[0].indexOf("매출일자");
+    const quantityIndex = tempCollection.value[0].indexOf("부수");
+    const isbnIndex = tempCollection.value[0].indexOf("ISBN");
+    for (const i of tempCollection.value.slice(1)) {
+      const quarter = getQuarter(i, dateIndex);
       let amount = "";
       for (const key in i) {
         if (key.includes("금") && key.includes("액")) {
@@ -393,10 +396,8 @@ const gitaSalesAdd = async (bookStoreIdNumber, dateKeyString) => {
         }
       }
       const sale = {
-        date: excelSerialDateToJSDate(i[dateKeyString]),
-        ISBN: i["ISBN"],
-        quantity: i["부수"],
-        amount: amount,
+        ISBN: i[isbnIndex],
+        quantity: i[quantityIndex],
         quarter: quarter,
         bookStore: toRaw(bookStore),
       };
@@ -417,7 +418,7 @@ const checkExist = async (bookStoreIdNumber, selectedYearQuarter) => {
   if (existingData.length > 0) {
     // 중복 데이터 발견
     throw new Error(
-      `이미 데이터가 업로드되었습니다: 서점 ID ${bookStoreIdNumber}, 년도/분기 ${selectedYearQuarter}`,
+        `이미 데이터가 업로드되었습니다: 서점 ID ${bookStoreIdNumber}, 년도/분기 ${selectedYearQuarter}`,
     );
   }
 };
@@ -439,7 +440,7 @@ const checkExistEBook = async (bookStoreIdNumber, selectedYearQuarter) => {
 const yes24SalesAdd = async (bookStoreIdNumber, quarter) => {
   if (tempHeaders.value === YES_24_HEADER_STRING) {
     const bookStore = store.state.bookStores.find(
-      (obj) => obj.idNumber === yes24IdNumber,
+        (obj) => obj.idNumber === yes24IdNumber,
     );
     for (const i of tempCollection.value.slice(1)) {
       if (i.length > 0) {
@@ -460,7 +461,7 @@ const yes24SalesAdd = async (bookStoreIdNumber, quarter) => {
 const kyoboSalesAdd = async (bookStoreIdNumber, quarter) => {
   if (tempHeaders.value === KYOBO_HEADER_STRING) {
     const bookStore = store.state.bookStores.find(
-      (obj) => obj.idNumber === kyoboIdNumber,
+        (obj) => obj.idNumber === kyoboIdNumber,
     );
     for (const i of tempCollection.value.slice(1)) {
       const sale = {
@@ -480,7 +481,7 @@ const kyoboSalesAdd = async (bookStoreIdNumber, quarter) => {
 const youngpoongSalesAdd = async (bookStoreIdNumber, quarter) => {
   if (tempHeaders.value === YOUNGPOONG_HEADER_STRING) {
     const bookStore = store.state.bookStores.find(
-      (obj) => obj.idNumber === youngpoongIdNumber,
+        (obj) => obj.idNumber === youngpoongIdNumber,
     );
     for (const i of tempCollection.value.slice(1)) {
       const sale = {
@@ -533,20 +534,16 @@ const addAladinSale = async () => {
 };
 
 const addSaleByBookStore = async () => {
-  console.log(salesData.value);
-  console.log(tempCollection.value);
   isLoading.value = true; // 로딩 시작
   isSuccess.value = false; // 초기 상태 재설정
   errorMessage.value = ""; // 초기 상태 재설정
-  let dateKeyString = "";
-  let quarter = "";
   try {
     switch (tempHeaders.value) {
       case GITA_HEADER_STRING:
-        dateKeyString = "매출일자";
-        quarter = getQuarter(tempCollection.value[0], dateKeyString);
+        const dateIndex = tempCollection.value[0].indexOf("매출일자");
+        const quarter = getQuarter(tempCollection.value[1], dateIndex);
         await checkExist(gitaIdNumber, quarter);
-        await gitaSalesAdd(gitaIdNumber, dateKeyString);
+        await gitaSalesAdd(gitaIdNumber, dateIndex);
         break;
       case YES_24_HEADER_STRING:
         await checkExist(yes24IdNumber, inputQuarter.value);
@@ -561,6 +558,8 @@ const addSaleByBookStore = async () => {
         await youngpoongSalesAdd(youngpoongIdNumber, inputQuarter.value);
         break;
       case ALADIN_EBOOK_HEADER_STRING:
+        await checkExistEBook(aladinEBookIdNumber, inputQuarter.value);
+        await addAladinEBookSales();
         break;
       case YES_24_EBOOK_HEADER_STRING:
         await checkExistEBook(yes24EBookIdNumber, inputQuarter.value);
@@ -585,18 +584,45 @@ const addYes24EBookSales = async (quarter) => {
         (obj) => obj.idNumber === yes24EBookIdNumber,
     );
     for (const i of tempCollection.value.slice(1, -1)) {
-      console.log(i[0]);
-      console.log(findISBNByBookTitle(i[0], true));
-      // const sale = {
-      //   ISBN: i[0],
-      //   amount: i[6],
-      //   quarter: quarter,
-      //   bookStore: toRaw(bookStore),
-      // };
-      // await store.dispatch("addSaleEBook", {
-      //   sale: sale,
-      // });
-      // await store.dispatch("fetchBookStoreExcelKeyAndName");
+      const title = findISBNByBookTitle(i[0], true);
+      if (title) {
+        const sale = {
+          ISBN: findISBNByBookTitle(i[0], true),
+          amount: i[2],
+          quarter: quarter,
+          bookStore: toRaw(bookStore),
+        };
+        await store.dispatch("addSaleEBook", {
+          sale: sale,
+        });
+      }
+      await store.dispatch("fetchBookStoreExcelKeyAndName");
+    }
+  }
+};
+
+const addAladinEBookSales = async () => {
+  if (tempHeaders.value === ALADIN_EBOOK_HEADER_STRING) {
+    const bookStore = store.state.bookStores.find(
+        (obj) => obj.idNumber === aladinEBookIdNumber,
+    );
+    const dateIndex = tempCollection.value[0].indexOf("발주일");
+    const amountIndex = tempCollection.value[0].indexOf("정산액");
+    const titleIndex = tempCollection.value[0].indexOf("도서명");
+    for (const i of tempCollection.value.slice(1)) {
+      const quarter = getQuarter(i, dateIndex);
+      const ISBN = findISBNByBookTitle(i[titleIndex], true);
+      const sale = {
+        ISBN,
+        amount: i[amountIndex],
+        quarter: quarter,
+        bookStore: toRaw(bookStore),
+      };
+      if (ISBN) {
+        await store.dispatch("addSaleEBook", {
+          sale: sale,
+        });
+      }
     }
   }
 };
@@ -606,10 +632,8 @@ const findISBNByBookTitle = (title, isEbook) => {
   if (targetBook.length > 1) {
     throw new Error("유사도가 높은 책이 2권 이상 발견");
   } else if (targetBook.length === 1) {
-    console.log(targetBook[0]);
     return isEbook ? targetBook[0].isbnEBook : targetBook[0].isbnPaper;
   }
-
 };
 
 </script>
@@ -649,6 +673,7 @@ input[type="file"] {
   display: block;
   margin: 0 auto;
 }
+
 .btn {
   margin: 0.5rem 0;
 }
@@ -691,20 +716,24 @@ input[type="file"] {
   background-color: #28a745;
   border-color: #28a745;
 }
+
 /* 추가적인 스타일... */
 .loading-indicator {
   color: #007bff;
 }
+
 .alert-success {
   color: #155724;
   background-color: #d4edda;
   border-color: #c3e6cb;
 }
+
 .alert-danger {
   color: #721c24;
   background-color: #f8d7da;
   border-color: #f5c6cb;
 }
+
 .modal {
   display: block; /* Hidden by default */
   position: fixed; /* Stay in place */
@@ -740,6 +769,7 @@ input[type="file"] {
   text-decoration: none;
   cursor: pointer;
 }
+
 .container {
   max-width: 900px;
   margin: 0 auto;
@@ -768,6 +798,7 @@ input[type="file"] {
   display: block;
   margin: 0 auto;
 }
+
 .btn {
   margin: 0.5rem 0;
 }
@@ -806,15 +837,18 @@ input[type="file"] {
   background-color: #28a745;
   border-color: #28a745;
 }
+
 /* 추가적인 스타일... */
 .loading-indicator {
   color: #007bff;
 }
+
 .alert-success {
   color: #155724;
   background-color: #d4edda;
   border-color: #c3e6cb;
 }
+
 .alert-danger {
   color: #721c24;
   background-color: #f8d7da;

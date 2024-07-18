@@ -30,7 +30,7 @@ const initDB = () => {
           autoIncrement: true,
         });
         authorsOS.createIndex("by_name", "name");
-        authorsOS.createIndex("by_idNumber", "idNumber");
+        authorsOS.createIndex("by_idNumber", "idNumber", { unique: true });
       }
 
       if (!db.objectStoreNames.contains(BOOKS_STRING)) {
@@ -39,15 +39,16 @@ const initDB = () => {
           autoIncrement: true,
         });
         booksOS.createIndex("by_title", "title");
-        booksOS.createIndex("by_isbnPaper", "isbnPaper");
-        booksOS.createIndex("by_isbnEbook", "isbnEbook");
+        booksOS.createIndex("by_isbnPaper", "isbnPaper", { unique: true });
+        booksOS.createIndex("by_isbnEbook", "isbnEbook", { unique: true });
       }
 
       if (!db.objectStoreNames.contains(AUTHOR_CONTRACTS_STRING)) {
-        db.createObjectStore(AUTHOR_CONTRACTS_STRING, {
+        const authorContractsOS = db.createObjectStore(AUTHOR_CONTRACTS_STRING, {
           keyPath: "id",
           autoIncrement: true,
         });
+        authorContractsOS.createIndex("by_ab", "ab", { unique: true })
       }
 
       if (!db.objectStoreNames.contains(BOOK_STORES_STRING)) {
@@ -55,7 +56,7 @@ const initDB = () => {
           keyPath: "id",
           autoIncrement: true,
         });
-        bookStoresOS.createIndex("by_idNumber", "idNumber");
+        bookStoresOS.createIndex("by_idNumber", "idNumber", { unique: true });
         bookStoresOS.createIndex("by_name", "name");
       }
 

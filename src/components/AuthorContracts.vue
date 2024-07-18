@@ -18,10 +18,11 @@ onMounted(async () => {
 });
 
 const getAuthorName = (authorId) => store.state.authors.find(author => author.id === authorId).name;
-const getBookTitle = (bookId) => store.state.books.find(book => book.id === bookId).title;
+const getBookTitle = (bookId) => store.state.books.find(book => book.id === bookId).title ;
 
 const submitAuthorContract = async () => {
   const authorContract = {
+    ab: `${selectedAuthorId.value}/${selectedBookId.value}`,
     authorId: selectedAuthorId.value,
     bookId: selectedBookId.value,
     royaltyRatePaper: royaltyRatePaper.value,
