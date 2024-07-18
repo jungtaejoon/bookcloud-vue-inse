@@ -3,7 +3,7 @@
     <h1>책 목록</h1>
     <button
       class="add-button"
-      @click="(showModal = true), (updateModal = false)"
+      @click="[(showModal = true), (updateModal = false)]"
     >
       책 추가
     </button>
@@ -28,7 +28,7 @@
           <td class="action-buttons">
             <button
               class="edit-button"
-              @click="openModal(book.id), (updateModal = true)"
+              @click="[openModal(book.id), (updateModal = true)]"
             >
               수정
             </button>
@@ -71,11 +71,9 @@ const editingIndex = ref(-1);
 const tempBook = ref({});
 
 const books = computed(() => store.state.books);
-const authors = computed(() => store.state.authors);
 
 onMounted(async () => {
   await store.dispatch("fetchBooks");
-  await store.dispatch("fetchAuthors");
 });
 
 const sortedBooks = computed(() => {
@@ -91,6 +89,7 @@ function filterNumericInput(field) {
 function openModal(bookId) {
   showModal.value = true;
   tempBook.value = { ...books.value.find((book) => book.id === bookId) };
+  return null;
 }
 
 function closeModal() {

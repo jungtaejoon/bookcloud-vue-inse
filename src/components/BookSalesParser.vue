@@ -553,7 +553,6 @@ const addSaleByBookStore = async () => {
         await youngpoongSalesAdd(youngpoongIdNumber, inputQuarter.value);
         break;
       case ALADIN_EBOOK_HEADER_STRING:
-        await checkExistEBook(aladinEBookIdNumber, inputQuarter.value);
         await addAladinEBookSales();
         break;
       case YES_24_EBOOK_HEADER_STRING:
@@ -561,7 +560,6 @@ const addSaleByBookStore = async () => {
         await addYes24EBookSales(inputQuarter.value);
         break;
       case KYOBO_EBOOK_HEADER_STRING:
-        await checkExistEBook(kyoboEBookIdNumber, inputQuarter.value);
         await addKyoboEBookSales();
         break;
       case MILLI_EBOOK_HEADER_STRING:
@@ -615,6 +613,8 @@ const addAladinEBookSales = async () => {
     const dateIndex = tempCollection.value[0].indexOf("발주일");
     const amountIndex = tempCollection.value[0].indexOf("정산액");
     const titleIndex = tempCollection.value[0].indexOf("도서명");
+    const selectedQuarter = getQuarter(tempCollection.value[1], dateIndex);
+    await checkExistEBook(aladinEBookIdNumber, selectedQuarter);
     for (const i of tempCollection.value.slice(1)) {
       const quarter = getQuarter(i, dateIndex);
       const ISBN = findISBNByBookTitle(i[titleIndex], true);
@@ -642,6 +642,8 @@ const addKyoboEBookSales = async () => {
     const dateIndex = tempCollection.value[1].indexOf("판매기간");
     const amountIndex = tempCollection.value[1].indexOf("정산액");
     const paperIsbnIndex = tempCollection.value[1].indexOf("종이책ISBN");
+    const selectedQuarter = getQuarterByYearMonth(tempCollection.value[3][dateIndex]);
+    await checkExistEBook(kyoboEBookIdNumber, selectedQuarter);
     for (const i of tempCollection.value.slice(3)) {
       const quarter = getQuarterByYearMonth(i[dateIndex]);
       const ISBN = findEBookISBNByPaperISBN(i[paperIsbnIndex]);
@@ -669,6 +671,8 @@ const addMilliEBookSales = async () => {
     const dateIndex = tempCollection.value[0].indexOf("매출기간");
     const amountIndex = tempCollection.value[0].indexOf("정산 금액");
     const isbnIndex = tempCollection.value[0].indexOf("e북 ISBN");
+    const selectedQuarter = getQuarterByYearMonth(tempCollection.value[1][dateIndex]);
+    await checkExistEBook(milliEBookIdNumber, selectedQuarter);
     for (const i of tempCollection.value.slice(1)) {
       const quarter = getQuarterByYearMonth(i[dateIndex]);
       const ISBN = String(i[isbnIndex]);

@@ -1,5 +1,31 @@
-import {createStore} from "vuex";
-import {getDB} from './db';
+import { createStore } from "vuex";
+import { getDB } from './db';
+
+// Helper function to handle IndexedDB operations
+const performIndexedDBOperation = async (storeName, operationType, data) => {
+  const db = await getDB();
+  if (!db) {
+    throw new Error("DB is not initialized yet");
+  }
+  const mode = operationType === "delete" || "put" || "add" ? "readwrite" : "readonly";
+  const transaction = db.transaction([storeName], mode);
+  const objectStore = transaction.objectStore(storeName);
+
+  return await new Promise((resolve, reject) => {
+    let request;
+    if (operationType === "add") {
+      request = objectStore.add(data);
+    } else if (operationType === "put") {
+      request = objectStore.put(data);
+    } else if (operationType === "delete") {
+      request = objectStore.delete(data);
+    } else {
+      request = data ? objectStore.get(data) : objectStore.getAll();
+    }
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
 
 export const store = createStore({
   state: {
@@ -13,709 +39,386 @@ export const store = createStore({
     debts: [],
   },
   mutations: {
-    ADD_AUTHOR(state, author) {
-      state.authors.push(author);
-    },
-    SET_AUTHORS(state, authors) {
-      state.authors = authors;
-    },
-    UPDATE_AUTHOR(state, payload) {
-      state.authors[payload.index] = payload.author;
-    },
-    ADD_BOOK(state, book) {
-      state.books.push(book);
-    },
-    SET_BOOKS(state, books) {
-      state.books = books;
-    },
-    UPDATE_BOOK(state, payload) {
-      state.books[payload.index] = payload.book;
-    },
-    ADD_AUTHOR_CONTRACT(state, authorContract) {
-      state.authorContracts.push(authorContract)
-    },
-    SET_AUTHOR_CONTRACTS(state, authorContracts) {
-      state.authorContracts = authorContracts;
-    },
-    UPDATE_AUTHOR_CONTRACT(state, payload) {
-      state.authorContracts[payload.index] = payload.authorContract;
-    },
-    SET_BOOK_STORES(state, bookStores) {
-      state.bookStores = bookStores;
-    },
-    ADD_BOOK_STORE(state, bookStore) {
-      state.bookStores.push(bookStore);
-    },
-    UPDATE_BOOK_STORE(state, updatedBookStore) {
-      const index = state.bookStores.findIndex(
-        (store) => store.id === updatedBookStore.id,
-      );
-      if (index !== -1) {
-        state.bookStores.splice(index, 1, updatedBookStore);
-      }
-    },
-    DELETE_BOOK_STORE(state, bookStoreId) {
-      const index = state.bookStores.findIndex(
-        (store) => store.id === bookStoreId,
-      );
-      if (index !== -1) {
-        state.bookStores.splice(index, 1);
-      }
-    },
-    SET_BOOK_STORE_EXCEL_KEY_AND_NAME(state, bookStoreExcelKeyAndName) {
-      state.bookStoreExcelKeyAndName = bookStoreExcelKeyAndName;
-    },
-    SET_AUTHOR_ROYALTIES(state, authorRoyalties) {
-      state.authorRoyalties = authorRoyalties;
-    },
-    ADD_SALES(state, sale) {
-      state.sales.push(sale);
-    },
-    SET_SALES(state, sales) {
-      state.sales = sales;
-    },
-    UPDATE_SALE(state, payload) {
-      state.sales[payload.index] = payload.sale;
-    },
-    SET_AUTHOR_PAYMENTS(state, payments) {
-      state.authorPayments = payments;
-    },
-    SET_DEBTS(state, debts) {
-      state.debts = debts;
-    },
+    SET_AUTHORS(state, authors) { state.authors = authors; },
+    SET_BOOKS(state, books) { state.books = books; },
+    SET_AUTHOR_CONTRACTS(state, authorContracts) { state.authorContracts = authorContracts; },
+    SET_BOOK_STORES(state, bookStores) { state.bookStores = bookStores; },
+    SET_BOOK_STORE_EXCEL_KEY_AND_NAME(state, bookStoreExcelKeyAndName) { state.bookStoreExcelKeyAndName = bookStoreExcelKeyAndName; },
+    SET_AUTHOR_ROYALTIES(state, authorRoyalties) { state.authorRoyalties = authorRoyalties; },
+    SET_SALES(state, sales) { state.sales = sales; },
+    SET_AUTHOR_PAYMENTS(state, payments) { state.authorPayments = payments; },
+    SET_DEBTS(state, debts) { state.debts = debts; },
   },
   actions: {
     async updateAuthor({ commit }, { author }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authors", "put", author);
+      } catch (error) {
+        console.error("Error updating author:", error);
       }
-      const transaction = db.transaction(["authors"], "readwrite");
-      const objectStore = transaction.objectStore("authors");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(author.id);
-        getRequest.onsuccess = () => {
-          const updateRequest = objectStore.put(author);
-          updateRequest.onerror = () => reject(updateRequest.error);
-          updateRequest.onsuccess = () => resolve(updateRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async fetchAuthors({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const authors = await performIndexedDBOperation("authors", "fetch");
+        commit("SET_AUTHORS", authors);
+      } catch (error) {
+        console.error("Error fetching authors:", error);
       }
-      const transaction = db.transaction(["authors"]);
-      const objectStore = transaction.objectStore("authors");
-      const authors = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_AUTHORS", authors);
     },
     async addAuthor({ commit }, { author }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authors", "add", author);
+      } catch (error) {
+        console.error("Error adding author:", error);
       }
-      const transaction = db.transaction(["authors"], "readwrite");
-      const objectStore = transaction.objectStore("authors");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(author);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("ADD_AUTHOR", author);
     },
     async deleteAuthor({ commit }, { author }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authors", "delete", author.id);
+      } catch (error) {
+        console.error("Error deleting author:", error);
       }
-      const transaction = db.transaction(["authors"], "readwrite");
-      const objectStore = transaction.objectStore("authors");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(author.id);
-        getRequest.onsuccess = () => {
-          const deleteRequest = objectStore.delete(author.id);
-          deleteRequest.onerror = () => reject(deleteRequest.error);
-          deleteRequest.onsuccess = () => resolve(deleteRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async fetchBooks({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const books = await performIndexedDBOperation("books", "fetch");
+        commit("SET_BOOKS", books);
+      } catch (error) {
+        console.error("Error fetching books:", error);
       }
-      const transaction = db.transaction(["books"]);
-      const objectStore = transaction.objectStore("books");
-      const books = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_BOOKS", books);
     },
     async addBook({ commit }, book) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("books", "add", book);
+      } catch (error) {
+        console.error("Error adding book:", error);
       }
-      const transaction = db.transaction(["books"], "readwrite");
-      const objectStore = transaction.objectStore("books");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(book);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async updateBook({ commit }, book) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("books", "put", book);
+      } catch (error) {
+        console.error("Error updating book:", error);
       }
-      const transaction = db.transaction(["books"], "readwrite");
-      const objectStore = transaction.objectStore("books");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(book.id);
-        getRequest.onsuccess = () => {
-          const updateRequest = objectStore.put(book);
-          updateRequest.onerror = () => reject(updateRequest.error);
-          updateRequest.onsuccess = () => resolve(updateRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async deleteBook({ commit }, bookId) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("books", "delete", bookId);
+      } catch (error) {
+        console.error("Error deleting book:", error);
       }
-      const transaction = db.transaction(["books"], "readwrite");
-      const objectStore = transaction.objectStore("books");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(bookId);
-        getRequest.onsuccess = () => {
-          const deleteRequest = objectStore.delete(bookId);
-          deleteRequest.onerror = () => reject(deleteRequest.error);
-          deleteRequest.onsuccess = () => resolve(deleteRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async fetchAuthorContracts({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const authorContracts = await performIndexedDBOperation("authorContracts", "fetch");
+        commit("SET_AUTHOR_CONTRACTS", authorContracts);
+      } catch (error) {
+        console.error("Error fetching author contracts:", error);
       }
-      const transaction = db.transaction(["authorContracts"]);
-      const objectStore = transaction.objectStore("authorContracts");
-      const books = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_AUTHOR_CONTRACTS", books);
     },
     async addAuthorContract({ commit }, authorContract) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authorContracts", "add", authorContract);
+      } catch (error) {
+        console.error("Error adding author contract:", error);
       }
-      const transaction = db.transaction(["authorContracts"], "readwrite");
-      const objectStore = transaction.objectStore("authorContracts");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(authorContract);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async updateAuthorContract({ commit }, authorContract) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authorContracts", "put", authorContract);
+      } catch (error) {
+        console.error("Error updating author contract:", error);
       }
-      const transaction = db.transaction(["authorContracts"], "readwrite");
-      const objectStore = transaction.objectStore("authorContracts");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(authorContract.id);
-        getRequest.onsuccess = () => {
-          const updateRequest = objectStore.put(authorContract);
-          updateRequest.onerror = () => reject(updateRequest.error);
-          updateRequest.onsuccess = () => resolve(updateRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async deleteAuthorContract({ commit }, authorContractId) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authorContracts", "delete", authorContractId);
+      } catch (error) {
+        console.error("Error deleting author contract:", error);
       }
-      const transaction = db.transaction(["authorContracts"], "readwrite");
-      const objectStore = transaction.objectStore("authorContracts");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(authorContractId);
-        getRequest.onsuccess = () => {
-          const deleteRequest = objectStore.delete(authorContractId);
-          deleteRequest.onerror = () => reject(deleteRequest.error);
-          deleteRequest.onsuccess = () => resolve(deleteRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async fetchBookStores({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const bookStores = await performIndexedDBOperation("bookStores", "fetch");
+        commit("SET_BOOK_STORES", bookStores);
+      } catch (error) {
+        console.error("Error fetching book stores:", error);
       }
-      const transaction = db.transaction(["bookStores"]);
-      const objectStore = transaction.objectStore("bookStores");
-      const bookStores = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_BOOK_STORES", bookStores);
     },
     async addBookStore({ commit }, { bookStore }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("bookStores", "add", bookStore);
+      } catch (error) {
+        console.error("Error adding book store:", error);
       }
-      const transaction = db.transaction(["bookStores"], "readwrite");
-      const objectStore = transaction.objectStore("bookStores");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(bookStore);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async updateBookStore({ commit }, { bookStore }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("bookStores", "put", bookStore);
+      } catch (error) {
+        console.error("Error updating book store:", error);
       }
-      const transaction = db.transaction(["bookStores"], "readwrite");
-      const objectStore = transaction.objectStore("bookStores");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(bookStore.id);
-        getRequest.onsuccess = () => {
-          const updateRequest = objectStore.put(bookStore);
-          updateRequest.onerror = () => reject(updateRequest.error);
-          updateRequest.onsuccess = () => resolve(updateRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async deleteBookStore({ commit }, { bookStoreId }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("bookStores", "delete", bookStoreId);
+      } catch (error) {
+        console.error("Error deleting book store:", error);
       }
-      const transaction = db.transaction(["bookStores"], "readwrite");
-      const objectStore = transaction.objectStore("bookStores");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(bookStoreId);
-        getRequest.onsuccess = () => {
-          const deleteRequest = objectStore.delete(bookStoreId);
-          deleteRequest.onerror = () => reject(deleteRequest.error);
-          deleteRequest.onsuccess = () => resolve(deleteRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async fetchBookStoreExcelKeyAndName({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const bookStoreExcelKeyAndName = await performIndexedDBOperation("bookStoreExcelKeyAndName", "fetch");
+        commit("SET_BOOK_STORE_EXCEL_KEY_AND_NAME", bookStoreExcelKeyAndName);
+      } catch (error) {
+        console.error("Error fetching book store excel key and name:", error);
       }
-      const transaction = db.transaction(["bookStoreExcelKeyAndName"]);
-      const objectStore = transaction.objectStore("bookStoreExcelKeyAndName");
-      const bookStoreExcelKeyAndName = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_BOOK_STORE_EXCEL_KEY_AND_NAME", bookStoreExcelKeyAndName);
     },
     async addBookStoreExcelKeyAndName({ commit }, { bookStoreExcelKeyAndName }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("bookStoreExcelKeyAndName", "add", bookStoreExcelKeyAndName);
+      } catch (error) {
+        console.error("Error adding book store excel key and name:", error);
       }
-      const transaction = db.transaction(
-        ["bookStoreExcelKeyAndName"],
-        "readwrite",
-      );
-      const objectStore = transaction.objectStore("bookStoreExcelKeyAndName");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(bookStoreExcelKeyAndName);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async fetchSalesData({ commit }, { bookStoreId, yearQuarter }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        const db = await getDB();
+        if (!db) {
+          console.error("DB is not initialized yet");
+          return;
+        }
+        const transaction = db.transaction(["sales"]);
+        const objectStore = transaction.objectStore("sales");
+        const index = objectStore.index("by_quarter");
+
+        // 필터링된 데이터 반환
+        return await new Promise((resolve, reject) => {
+          // 모든 판매 데이터를 조회
+          const request = index.getAll(yearQuarter);
+          request.onsuccess = (e) => {
+            const filteredSales = e.target.result.filter(sale => sale.bookStore.idNumber === bookStoreId);
+            resolve(filteredSales);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error("Error fetching sales data:", error);
       }
-      const transaction = db.transaction(["sales"]);
-      const objectStore = transaction.objectStore("sales");
-      const index = objectStore.index("by_quarter")
-      // 필터링된 데이터 반환
-      return await new Promise((resolve, reject) => {
-        // 모든 판매 데이터를 조회
-        const request = index.getAll(yearQuarter);
-        request.onsuccess = (e) => {
-          const filteredSales = e.target.result.filter((sale) => sale.bookStore.idNumber === bookStoreId);
-          resolve(filteredSales);
-        };
-        request.onerror = () => reject(request.error);
-      });
     },
     async fetchSalesDataEBook({ commit }, { bookStoreId, yearQuarter }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
-      }
-      const transaction = db.transaction(["ebookSales"]);
-      const objectStore = transaction.objectStore("ebookSales");
-      // 필터링된 데이터 반환
-      const index = objectStore.index("by_quarter")
-      // 필터링된 데이터 반환
-      return await new Promise((resolve, reject) => {
-        // 모든 판매 데이터를 조회
-        const request = index.getAll(yearQuarter);
-        request.onsuccess = (e) => resolve(e.target.result);
-        request.onerror = () => reject(request.error);
-      });
-    },
+      try {
+        const db = await getDB();
+        if (!db) {
+          console.error("DB is not initialized yet");
+          return;
+        }
+        const transaction = db.transaction(["ebookSales"]);
+        const objectStore = transaction.objectStore("ebookSales");
+        const index = objectStore.index("by_quarter");
 
+        // 필터링된 데이터 반환
+        return await new Promise((resolve, reject) => {
+          // 모든 판매 데이터를 조회
+          const request = index.getAll(yearQuarter);
+          request.onsuccess = (e) => {
+            const filteredSales = e.target.result.filter(sale => sale.bookStore.idNumber === bookStoreId);
+            resolve(filteredSales);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error("Error fetching ebook sales data:", error);
+      }
+    },
     async addSale({ commit }, { sale }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("sales", "add", sale);
+      } catch (error) {
+        console.error("Error adding sale:", error);
       }
-      const transaction = db.transaction(["sales"], "readwrite");
-      const objectStore = transaction.objectStore("sales");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(sale);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
-
     async addSaleEBook({ commit }, { sale }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("ebookSales", "add", sale);
+      } catch (error) {
+        console.error("Error adding ebook sale:", error);
       }
-      const transaction = db.transaction(["ebookSales"], "readwrite");
-      const objectStore = transaction.objectStore("ebookSales");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(sale);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
-
     async updateSale({ commit }, { sale }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("sales", "put", sale);
+      } catch (error) {
+        console.error("Error updating sale:", error);
       }
-      const transaction = db.transaction(["sales"], "readwrite");
-      const objectStore = transaction.objectStore("sales");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(sale.id);
-        getRequest.onsuccess = () => {
-          const updateRequest = objectStore.put(sale);
-          updateRequest.onerror = () => reject(updateRequest.error);
-          updateRequest.onsuccess = () => resolve(updateRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async deleteSale({ commit }, { saleId }) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("sales", "delete", saleId);
+      } catch (error) {
+        console.error("Error deleting sale:", error);
       }
-      const transaction = db.transaction(["sales"], "readwrite");
-      const objectStore = transaction.objectStore("sales");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(saleId);
-        getRequest.onsuccess = () => {
-          const deleteRequest = objectStore.delete(saleId);
-          deleteRequest.onerror = () => reject(deleteRequest.error);
-          deleteRequest.onsuccess = () => resolve(deleteRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async fetchSales({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const sales = await performIndexedDBOperation("sales", "fetch");
+        commit("SET_SALES", sales);
+      } catch (error) {
+        console.error("Error fetching sales:", error);
       }
-      const transaction = db.transaction(["sales"]);
-      const objectStore = transaction.objectStore("sales");
-      const sales = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_SALES", sales);
     },
-    async addAuthorRoyalty({ commit }, authorRoyalty ) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+    async addAuthorRoyalty({ commit }, authorRoyalty) {
+      try {
+        await performIndexedDBOperation("authorRoyalties", "add", authorRoyalty);
+      } catch (error) {
+        console.error("Error adding author royalty:", error);
       }
-      const transaction = db.transaction(["authorRoyalties"], "readwrite");
-      const objectStore = transaction.objectStore("authorRoyalties");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(authorRoyalty);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async updateAuthorRoyalty({ commit }, authorRoyalty) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authorRoyalties", "put", authorRoyalty);
+      } catch (error) {
+        console.error("Error updating author royalty:", error);
       }
-      const transaction = db.transaction(["authorRoyalties"], "readwrite");
-      const objectStore = transaction.objectStore("authorRoyalties");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(authorRoyalty.id);
-        getRequest.onsuccess = () => {
-          const updateRequest = objectStore.put(authorRoyalty);
-          updateRequest.onerror = () => reject(updateRequest.error);
-          updateRequest.onsuccess = () => resolve(updateRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async fetchAuthorRoyalties({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const authorRoyalties = await performIndexedDBOperation("authorRoyalties", "fetch");
+        commit("SET_AUTHOR_ROYALTIES", authorRoyalties);
+      } catch (error) {
+        console.error("Error fetching author royalties:", error);
       }
-      const transaction = db.transaction(["authorRoyalties"]);
-      const objectStore = transaction.objectStore("authorRoyalties");
-      const authorRoyalties = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_AUTHOR_ROYALTIES", authorRoyalties);
     },
-    async getRoyaltyByQAB({ commit }, key ) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
-      }
-      const transaction = db.transaction(["authorRoyalties"]);
-      const objectStore = transaction.objectStore("authorRoyalties");
-      const index = objectStore.index("by_qab");
-      return await new Promise((resolve, reject) => {
-        const request = index.get(key);
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
+    async getRoyaltyByQAB({ commit }, key) {
+      try {
+        const db = await getDB();
+        if (!db) {
+          console.error("DB is not initialized yet");
+          return;
         }
-        request.onerror = () => reject(request.error);
-      });
+        const transaction = db.transaction(["authorRoyalties"]);
+        const objectStore = transaction.objectStore("authorRoyalties");
+        const index = objectStore.index("by_qab");
+
+        return await new Promise((resolve, reject) => {
+          const request = index.get(key);
+          request.onsuccess = (event) => resolve(event.target.result);
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error("Error getting royalty by QAB:", error);
+      }
     },
-    async getRoyaltiesByQuarter({ commit }, key ) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
-      }
-      const transaction = db.transaction(["authorRoyalties"]);
-      const objectStore = transaction.objectStore("authorRoyalties");
-      const index = objectStore.index("by_quarter");
-      return await new Promise((resolve, reject) => {
-        const request = index.getAll(key);
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
+    async getRoyaltiesByQuarter({ commit }, key) {
+      try {
+        const db = await getDB();
+        if (!db) {
+          console.error("DB is not initialized yet");
+          return;
         }
-        request.onerror = () => reject(request.error);
-      });
+        const transaction = db.transaction(["authorRoyalties"]);
+        const objectStore = transaction.objectStore("authorRoyalties");
+        const index = objectStore.index("by_quarter");
+
+        return await new Promise((resolve, reject) => {
+          const request = index.getAll(key);
+          request.onsuccess = (event) => resolve(event.target.result);
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error("Error getting royalties by quarter:", error);
+      }
     },
     async savePayment({ commit }, payment) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authorPayments", "add", payment);
+      } catch (error) {
+        console.error("Error saving payment:", error);
       }
-      const transaction = db.transaction(["authorPayments"], "readwrite");
-      const objectStore = transaction.objectStore("authorPayments");
-      await new Promise((resolve, reject) => {
-        const request = objectStore.add(payment);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async deletePayment({ commit }, paymentId) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("authorPayments", "delete", paymentId);
+      } catch (error) {
+        console.error("Error deleting payment:", error);
       }
-      const transaction = db.transaction(["authorPayments"], "readwrite");
-      const objectStore = transaction.objectStore("authorPayments");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(paymentId);
-        getRequest.onsuccess = () => {
-          const deleteRequest = objectStore.delete(paymentId);
-          deleteRequest.onerror = () => reject(deleteRequest.error);
-          deleteRequest.onsuccess = () => resolve(deleteRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async getAuthorPaymentsByAb({ commit }, ab) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const db = await getDB();
+        if (!db) {
+          console.error("DB is not initialized yet");
+          return;
+        }
+        const transaction = db.transaction(["authorPayments"]);
+        const objectStore = transaction.objectStore("authorPayments");
+        const index = objectStore.index("by_ab");
+
+        return await new Promise((resolve, reject) => {
+          const request = index.getAll(ab);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error("Error getting author payments by AB:", error);
       }
-      const transaction = db.transaction(["authorPayments"]);
-      const objectStore = transaction.objectStore("authorPayments");
-      const index = objectStore.index("by_ab");
-      return await new Promise((resolve, reject) => {
-        const request = index.getAll(ab);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async fetchAuthorPayments({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const authorPayments = await performIndexedDBOperation("authorPayments", "fetch");
+        commit("SET_AUTHOR_PAYMENTS", authorPayments);
+      } catch (error) {
+        console.error("Error fetching author payments:", error);
       }
-      const transaction = db.transaction(["authorPayments"]);
-      const objectStore = transaction.objectStore("authorPayments");
-      const payments = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_AUTHOR_PAYMENTS", payments);
     },
-    async saveDebt({ commit }, dept) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+    async saveDebt({ commit }, debt) {
+      try {
+        return await performIndexedDBOperation("debts", "add", debt);
+      } catch (error) {
+        console.error("Error saving debt:", error);
       }
-      const transaction = db.transaction(["debts"], "readwrite");
-      const objectStore = transaction.objectStore("debts");
-      return await new Promise((resolve, reject) => {
-        const request = objectStore.add(dept);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async deleteDebt({ commit }, debtId) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        await performIndexedDBOperation("debts", "delete", debtId);
+      } catch (error) {
+        console.error("Error deleting debt:", error);
       }
-      const transaction = db.transaction(["debts"], "readwrite");
-      const objectStore = transaction.objectStore("debts");
-      await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(debtId);
-        getRequest.onsuccess = () => {
-          const deleteRequest = objectStore.delete(debtId);
-          deleteRequest.onerror = () => reject(deleteRequest.error);
-          deleteRequest.onsuccess = () => resolve(deleteRequest.result);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async getDebt({ commit }, debtId) {
-      const db = await getDB();
-      if (!db) {
-        console.error(commit + "DB is not initialized yet");
-        return;
+      try {
+        return await performIndexedDBOperation("debts", "get", debtId);
+      } catch (error) {
+        console.error("Error getting debt:", error);
       }
-      const transaction = db.transaction(["debts"], "readwrite");
-      const objectStore = transaction.objectStore("debts");
-      return await new Promise((resolve, reject) => {
-        const getRequest = objectStore.get(debtId);
-        getRequest.onsuccess = () => resolve(getRequest.result);
-        getRequest.onerror = () => reject(getRequest.error);
-      });
     },
     async getDebtsByAb({ commit }, ab) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const db = await getDB();
+        if (!db) {
+          console.error("DB is not initialized yet");
+          return;
+        }
+        const transaction = db.transaction(["debts"]);
+        const objectStore = transaction.objectStore("debts");
+        const index = objectStore.index("by_ab");
+
+        return await new Promise((resolve, reject) => {
+          const request = index.getAll(ab);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error("Error getting debts by AB:", error);
       }
-      const transaction = db.transaction(["debts"]);
-      const objectStore = transaction.objectStore("debts");
-      const index = objectStore.index("by_ab");
-      return await new Promise((resolve, reject) => {
-        const request = index.getAll(ab);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     },
     async fetchDebts({ commit }) {
-      const db = await getDB();
-      if (!db) {
-        console.error("DB is not initialized yet");
-        return;
+      try {
+        const debts = await performIndexedDBOperation("debts", "fetch");
+        commit("SET_DEBTS", debts);
+      } catch (error) {
+        console.error("Error fetching debts:", error);
       }
-      const transaction = db.transaction(["debts"]);
-      const objectStore = transaction.objectStore("debts");
-      const debts = await new Promise((resolve, reject) => {
-        const request = objectStore.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      commit("SET_DEBTS", debts);
     },
   },
 });
