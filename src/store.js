@@ -34,6 +34,7 @@ export const store = createStore({
     books: [],
     bookStores: [],
     sales: [],
+    ebookSales:[],
     authorRoyalties: [],
     authorContracts: [],
     debts: [],
@@ -46,6 +47,7 @@ export const store = createStore({
     SET_BOOK_STORE_EXCEL_KEY_AND_NAME(state, bookStoreExcelKeyAndName) { state.bookStoreExcelKeyAndName = bookStoreExcelKeyAndName; },
     SET_AUTHOR_ROYALTIES(state, authorRoyalties) { state.authorRoyalties = authorRoyalties; },
     SET_SALES(state, sales) { state.sales = sales; },
+    SET_EBOOK_SALES(state, ebookSales) { state.ebookSales = ebookSales; },
     SET_AUTHOR_PAYMENTS(state, payments) { state.authorPayments = payments; },
     SET_DEBTS(state, debts) { state.debts = debts; },
   },
@@ -263,6 +265,14 @@ export const store = createStore({
       try {
         const sales = await performIndexedDBOperation("sales", "fetch");
         commit("SET_SALES", sales);
+      } catch (error) {
+        console.error("Error fetching sales:", error);
+      }
+    },
+    async fetchEBookSales({ commit }) {
+      try {
+        const ebookSales = await performIndexedDBOperation("ebookSales", "fetch");
+        commit("SET_EBOOK_SALES", ebookSales);
       } catch (error) {
         console.error("Error fetching sales:", error);
       }

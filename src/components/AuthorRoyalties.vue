@@ -8,7 +8,7 @@
           {{ quarter }}
         </option>
       </select>
-      <button @click="submitRoyalties" class="submit-button">추가</button>
+      <button @click="excelDownload" class="submit-button">엑셀 다운로드</button>
     </div>
 
     <table v-if="authorRoyalties.length > 0">
@@ -28,6 +28,10 @@
         <th>선지급 및 기타 잔액</th>
         <th>종이책 실수령액</th>
         <th>종이책 지급</th>
+        <th>교보 전자책</th>
+        <th>밀리의 서재 전자책</th>
+        <th>예스24 전자책</th>
+        <th>알라딘 전자책</th>
         <th>전자책 인세</th>
         <th>전자책 인세 국세</th>
         <th>전자책 인세 지방세</th>
@@ -58,6 +62,10 @@
           </button>
           <div v-else>지급 완료</div>
         </td>
+        <td class="text-right">{{ authorRoyalty.royalty.kyoboEBookAmount }}</td>
+        <td class="text-right">{{ authorRoyalty.royalty.milliEBookAmount }}</td>
+        <td class="text-right">{{ authorRoyalty.royalty.yes24EBookAmount }}</td>
+        <td class="text-right">{{ authorRoyalty.royalty.aladinEBookAmount }}</td>
         <td class="text-right">{{ authorRoyalty.royalty.royaltyEBook.toLocaleString() }}</td>
         <td class="text-right">{{ authorRoyalty.royalty.royaltyEBookNationalTax.toLocaleString() }}</td>
         <td class="text-right">{{ authorRoyalty.royalty.royaltyEBookCountryTax.toLocaleString() }}</td>
@@ -100,8 +108,13 @@ const aladinIdNumber = store.state.ALADIN_ID_NUMBER;
 const yes24IdNumber = store.state.YES_24_ID_NUMBER;
 const kyoboIdNumber = store.state.KYOBO_ID_NUMBER;
 const youngpoongIdNumber = store.state.YOUNGPOONG_ID_NUMBER;
+const aladinEBookIdNumber = store.state.ALADIN_EBOOK_ID_NUMBER;
+const yes24EBookIdNumber = store.state.YES_24_EBOOK_ID_NUMBER;
+const kyoboEBookIdNumber = store.state.KYOBO_EBOOK_ID_NUMBER;
+const milliEBookIdNumber = store.state.MILLI_EBOOK_ID_NUMBER;
 
 const modifiedSalesMapByISBNQuarter = new Map();
+const modifiedEBookSalesMapByISBNQuarter = new Map();
 const modifiedContractsMapByAuthorAndBookId = new Map();
 
 const totalRoyaltiesSum = computed(() => {
@@ -113,8 +126,10 @@ onMounted(async () => {
   await store.dispatch("fetchAuthors");
   await store.dispatch("fetchBooks");
   await store.dispatch("fetchSales");
+  await store.dispatch("fetchEBookSales");
   await store.dispatch("fetchAuthorContracts");
   updateModifiedSalesMap();
+  updateModifiedEBookSalesMap();
   updateModifiedContractsMapByAuthorAndBookId();
 });
 
@@ -124,6 +139,10 @@ watch(selectedQuarter, async () => {
 
 watch(store.state.sales, () => {
   updateModifiedSalesMap();
+});
+
+watch(store.state.ebookSales, () => {
+  updateModifiedEBookSalesMap();
 });
 
 watch(store.state.authors, () => {
@@ -152,6 +171,26 @@ const updateModifiedSalesMap = () => {
   });
 };
 
+const updateModifiedEBookSalesMap = () => {
+  store.state.ebookSales.forEach((sale) => {
+    const modifiedSale = {ISBN: sale.ISBN};
+    if (modifiedEBookSalesMapByISBNQuarter.has(`${sale.ISBN}/${sale.quarter}`)) {
+      modifiedSale.amount = parseInt(modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).amount) + parseInt(sale.amount);
+      modifiedSale.kyoboEBookAmount = kyoboEBookIdNumber === sale.bookStore.idNumber ? modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).kyoboEBookAmount + sale.amount : modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).kyoboEBookAmount;
+      modifiedSale.milliEBookAmount = milliEBookIdNumber === sale.bookStore.idNumber ? modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).milliEBookAmount + sale.amount : modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).milliEBookAmount;
+      modifiedSale.yes24EBookAmount = yes24EBookIdNumber === sale.bookStore.idNumber ? modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).yes24EBookAmount + sale.amount : modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).yes24EBookAmount;
+      modifiedSale.aladinEBookAmount = aladinEBookIdNumber === sale.bookStore.idNumber ? modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).aladinEBookAmount + sale.amount : modifiedEBookSalesMapByISBNQuarter.get(`${sale.ISBN}/${sale.quarter}`).aladinEBookAmount;
+    } else {
+      modifiedSale.kyoboEBookAmount = kyoboEBookIdNumber === sale.bookStore.idNumber ? sale.amount : 0;
+      modifiedSale.milliEBookAmount = milliEBookIdNumber === sale.bookStore.idNumber ? sale.amount : 0;
+      modifiedSale.yes24EBookAmount = yes24EBookIdNumber === sale.bookStore.idNumber ? sale.amount : 0;
+      modifiedSale.aladinEBookAmount = aladinEBookIdNumber === sale.bookStore.idNumber ? sale.amount : 0;
+      modifiedSale.amount = parseInt(sale.amount);
+    }
+    modifiedEBookSalesMapByISBNQuarter.set(`${sale.ISBN}/${sale.quarter}`, modifiedSale);
+  });
+};
+
 const updateModifiedContractsMapByAuthorAndBookId = () => {
   store.state.authorContracts.forEach((contract) => {
     const key = `${contract.authorId}/${contract.bookId}`;
@@ -176,11 +215,12 @@ function calculateRoyaltiesForAllAuthorsByBooks(quarter) {
   const royalties = [];
   modifiedContractsMapByAuthorAndBookId.forEach((modifiedContract) => {
     const modifiedSale = modifiedSalesMapByISBNQuarter.get(`${modifiedContract.isbnPaper}/${quarter}`);
-    const royaltyPaper = modifiedSale ? modifiedSale.quantity * modifiedContract.pricePaper * modifiedContract.royaltyRatePaper / 100 : 0
+    const royaltyPaper = modifiedSale ? parseInt(modifiedSale.quantity * modifiedContract.pricePaper * modifiedContract.royaltyRatePaper / 100) : 0
     const royaltyPaperNationalTax = parseInt(royaltyPaper * 0.03);
     const royaltyPaperCountryTax = parseInt(royaltyPaper * 0.03 * 0.1);
     const royaltyPaperAfterTax = royaltyPaper - royaltyPaperNationalTax - royaltyPaperCountryTax;
-    const royaltyEBook = 0;
+    const modifiedEBookSale = modifiedEBookSalesMapByISBNQuarter.get(`${modifiedContract.isbnEBook}/${quarter}`);
+    const royaltyEBook = modifiedEBookSale ? parseInt(modifiedEBookSale.amount * modifiedContract.royaltyRateEBook / 100) : 0;
     const royaltyEBookNationalTax = parseInt(royaltyEBook * 0.03);
     const royaltyEBookCountryTax = parseInt(royaltyEBook * 0.03 * 0.1);
     const royaltyEBookAfterTax = royaltyEBook - royaltyEBookNationalTax - royaltyEBookCountryTax;
@@ -199,6 +239,10 @@ function calculateRoyaltiesForAllAuthorsByBooks(quarter) {
       royaltyPaperNationalTax,
       royaltyPaperCountryTax,
       royaltyPaperAfterTax,
+      kyoboEBookAmount: modifiedEBookSale ? modifiedEBookSale.kyoboEBookAmount : 0,
+      milliEBookAmount: modifiedEBookSale ? modifiedEBookSale.milliEBookAmount : 0,
+      yes24EBookAmount: modifiedEBookSale ? modifiedEBookSale.yes24EBookAmount : 0,
+      aladinEBookAmount: modifiedEBookSale ? modifiedEBookSale.aladinEBookAmount : 0,
       royaltyEBook,
       royaltyEBookNationalTax,
       royaltyEBookCountryTax,
@@ -256,7 +300,7 @@ const fetchRoyaltiesForAllAuthors = async () => {
     const totalPayment = targetPayments.reduce((total, payment) => total + payment.amount, 0);
     authorRoyalty.balance = totalPayment - totalDebt;
     authorRoyalty.netPay = authorRoyalty.royalty.royaltyPaperAfterTax - authorRoyalty.balance;
-    authorRoyalty.balanceEBook = authorRoyalty.balance - authorRoyalty.royalty.royaltyPaperAfterTax + (authorRoyalty.netPay < 0 ? 0 : authorRoyalty.netPay);
+    authorRoyalty.balanceEBook = authorRoyalty.netPay > 0 ? 0 : -authorRoyalty.netPay;
     authorRoyalty.netPayEBook = authorRoyalty.royalty.royaltyEBookAfterTax - authorRoyalty.balanceEBook;
     return authorRoyalty;
   })
@@ -302,16 +346,16 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
   const date = ref("");
   switch (selectedQuarter.value.slice(-1)) {
     case "1":
-      date.value = `${selectedQuarter.value.slice(0, 4)}-04-15`;
+      date.value = `${selectedQuarter.value.slice(0, 4)}-04-${isPaper ? "5" : "15"}`;
       break;
     case "2":
-      date.value = `${selectedQuarter.value.slice(0, 4)}-07-15`;
+      date.value = `${selectedQuarter.value.slice(0, 4)}-07-${isPaper ? "5" : "15"}`;
       break;
     case "3":
-      date.value = `${selectedQuarter.value.slice(0, 4)}-10-15`;
+      date.value = `${selectedQuarter.value.slice(0, 4)}-10-${isPaper ? "5" : "15"}`;
       break;
     case "4":
-      date.value = `${parseInt(selectedQuarter.value.slice(0, 4)) + 1}-01-15`;
+      date.value = `${parseInt(selectedQuarter.value.slice(0, 4)) + 1}-01-${isPaper ? "5" : "15"}`;
       break;
   }
   const payment = {
@@ -334,7 +378,7 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
   await fetchRoyaltiesForAllAuthors();
 };
 
-const submitRoyalties = async () => {
+const excelDownload = async () => {
   const targetAuthorIds = new Set();
   authorRoyalties.value.forEach((authorRoyalty) => {
     targetAuthorIds.add(authorRoyalty.authorId);
@@ -345,8 +389,6 @@ const submitRoyalties = async () => {
   });
   await Promise.all(promises);
 };
-
-
 
 
 </script>
