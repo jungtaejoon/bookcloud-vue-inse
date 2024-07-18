@@ -230,6 +230,8 @@ const KYOBO_HEADER_STRING = "ISBN,상품명,출판일자,저자,출판사,정가
 const YOUNGPOONG_HEADER_STRING = "바코드,도서명,정가,저자,출판사명,자재그룹내역,판매수량,발행일,과세구분";
 const ALADIN_EBOOK_HEADER_STRING = "발주일,고객(기관명),도서명,저자,출판사,공급사,ItemId,CID,카피수,정가,정가합,입고율,정산액";
 const YES_24_EBOOK_HEADER_STRING = "도서명,총 판매건수,총 정산액,B2C 판매건수,B2C 정산금액,B2B 판매건수,B2B 정산금액,B2BC 판매건수,B2BC 정산금액";
+const KYOBO_EBOOK_HEADER_STRING = "정산내역조회";
+const MILLI_EBOOK_HEADER_STRING = "매출기간,브랜드,e북 ISBN,도서명,구분,저자,대여 횟수,공급 Copy 수,매출 금액,선구매 적용 Copy 수,일반정산 Copy,정산 금액,15회 신간";
 
 const isLoading = ref(false);
 const isSuccess = ref(false);
@@ -267,28 +269,12 @@ const onChange = (event) => {
     const worksheet = workbook.Sheets[sheetName];
     const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
     tempCollection.value = json;
-    console.log(json);
     checkDb(json); // 데이터 처리 함수, 적절히 구현 필요
   };
   reader.readAsArrayBuffer(uploadedFile);
   file.value = uploadedFile;
   fileKey.value = Date.now(); // 파일 변경 감지를 위해 key 업데이트
 };
-
-// const onChange = (event) => {
-//   salesData.value = [];
-//   const uploadedFile = event.target.files[0];
-//   if (
-//     uploadedFile &&
-//     (uploadedFile.name.endsWith(".xlsx") || uploadedFile.name.endsWith(".xls"))
-//   ) {
-//     file.value = uploadedFile;
-//     console.log(uploadedFile);
-//     jsonKey.value++;
-//   } else {
-//     alert("파일 확장자를 확인하세요(.xlsx, .xls 등)");
-//   }
-// };
 
 const addBookStoreExcelKeyAndName = async () => {
   if (bookStoreExcelKeyAndName.value) {
@@ -347,6 +333,17 @@ const getQuarter = (item, dateIndex) => {
   const year = saleDate.getFullYear(); // 년도 추출
   return `${year}-${quarter}`;
 };
+
+function getQuarterByYearMonth(yearMonth) {
+  // 입력 형식: "2022-01"
+  const [year, month] = yearMonth.split('-').map(Number);
+
+  // 월에 따른 분기 계산
+  const quarter = Math.ceil(month / 3);
+
+  // 결과를 "년도-분기" 형식으로 반환
+  return `${year}-${quarter}`;
+}
 
 function handlePaste(event) {
   salesData.value = [];
@@ -428,7 +425,6 @@ const checkExistEBook = async (bookStoreIdNumber, selectedYearQuarter) => {
     bookStoreId: bookStoreIdNumber,
     yearQuarter: selectedYearQuarter,
   });
-  console.log(existingData);
   if (existingData.length > 0) {
     // 중복 데이터 발견
     throw new Error(
@@ -510,9 +506,8 @@ const addAladinSale = async () => {
     });
     if (existingData.length > 0) {
       // 중복 데이터 발견
-      throw new Error(
-          `이미 데이터가 업로드되었습니다: 서점 ID ${aladinIdNumber}, 년도/분기 ${inputQuarter.value}`,
-      );
+      alert(`이미 데이터가 업로드되었습니다: 서점 ID ${aladinIdNumber}, 년도/분기 ${inputQuarter.value}`);
+      return;
     }
     for (const i of salesData.value) {
       await store.dispatch("addSale", {
@@ -565,6 +560,13 @@ const addSaleByBookStore = async () => {
         await checkExistEBook(yes24EBookIdNumber, inputQuarter.value);
         await addYes24EBookSales(inputQuarter.value);
         break;
+      case KYOBO_EBOOK_HEADER_STRING:
+        await checkExistEBook(kyoboEBookIdNumber, inputQuarter.value);
+        await addKyoboEBookSales();
+        break;
+      case MILLI_EBOOK_HEADER_STRING:
+        await checkExistEBook(milliEBookIdNumber, inputQuarter.value);
+        await addMilliEBookSales();
     }
     isSuccess.value = true;
     alert("데이터가 성공적으로 업로드되었습니다."); // 성공 알림
@@ -586,15 +588,19 @@ const addYes24EBookSales = async (quarter) => {
     for (const i of tempCollection.value.slice(1, -1)) {
       const title = findISBNByBookTitle(i[0], true);
       if (title) {
+        const ISBN = findISBNByBookTitle(i[0], true);
+        const amount = i[2];
         const sale = {
-          ISBN: findISBNByBookTitle(i[0], true),
-          amount: i[2],
-          quarter: quarter,
+          ISBN,
+          amount,
+          quarter,
           bookStore: toRaw(bookStore),
         };
-        await store.dispatch("addSaleEBook", {
-          sale: sale,
-        });
+        if (ISBN && Number(amount) !== 0) {
+          await store.dispatch("addSaleEBook", {
+            sale: sale,
+          });
+        }
       }
       await store.dispatch("fetchBookStoreExcelKeyAndName");
     }
@@ -612,13 +618,68 @@ const addAladinEBookSales = async () => {
     for (const i of tempCollection.value.slice(1)) {
       const quarter = getQuarter(i, dateIndex);
       const ISBN = findISBNByBookTitle(i[titleIndex], true);
+      const amount = i[amountIndex];
       const sale = {
         ISBN,
-        amount: i[amountIndex],
-        quarter: quarter,
+        amount,
+        quarter,
         bookStore: toRaw(bookStore),
       };
-      if (ISBN) {
+      if (ISBN && Number(amount) !== 0) {
+        await store.dispatch("addSaleEBook", {
+          sale: sale,
+        });
+      }
+    }
+  }
+};
+
+const addKyoboEBookSales = async () => {
+  if (tempHeaders.value === KYOBO_EBOOK_HEADER_STRING) {
+    const bookStore = store.state.bookStores.find(
+        (obj) => obj.idNumber === kyoboEBookIdNumber,
+    );
+    const dateIndex = tempCollection.value[1].indexOf("판매기간");
+    const amountIndex = tempCollection.value[1].indexOf("정산액");
+    const paperIsbnIndex = tempCollection.value[1].indexOf("종이책ISBN");
+    for (const i of tempCollection.value.slice(3)) {
+      const quarter = getQuarterByYearMonth(i[dateIndex]);
+      const ISBN = findEBookISBNByPaperISBN(i[paperIsbnIndex]);
+      const amount = i[amountIndex];
+      const sale = {
+        ISBN,
+        amount,
+        quarter,
+        bookStore: toRaw(bookStore),
+      };
+      if (ISBN && Number(amount) !== 0) {
+        await store.dispatch("addSaleEBook", {
+          sale: sale,
+        });
+      }
+    }
+  }
+};
+
+const addMilliEBookSales = async () => {
+  if (tempHeaders.value === MILLI_EBOOK_HEADER_STRING) {
+    const bookStore = store.state.bookStores.find(
+        (obj) => obj.idNumber === milliEBookIdNumber,
+    );
+    const dateIndex = tempCollection.value[0].indexOf("매출기간");
+    const amountIndex = tempCollection.value[0].indexOf("정산 금액");
+    const isbnIndex = tempCollection.value[0].indexOf("e북 ISBN");
+    for (const i of tempCollection.value.slice(1)) {
+      const quarter = getQuarterByYearMonth(i[dateIndex]);
+      const ISBN = String(i[isbnIndex]);
+      const amount = i[amountIndex];
+      const sale = {
+        ISBN,
+        amount,
+        quarter,
+        bookStore: toRaw(bookStore),
+      };
+      if (ISBN && Number(amount) !== 0) {
         await store.dispatch("addSaleEBook", {
           sale: sale,
         });
@@ -636,6 +697,15 @@ const findISBNByBookTitle = (title, isEbook) => {
   }
 };
 
+const findEBookISBNByPaperISBN = (paperIsbn) => {
+  const targetBook = books.value.find((book) => String(book.isbnPaper) === String(paperIsbn));
+  if (targetBook) {
+    return targetBook.isbnEBook;
+  } else {
+    throw new Error(`맞는 종이책 ISBN이 없음. paperIsbn: ${paperIsbn}`);
+  }
+}
+
 </script>
 
 <style scoped>
@@ -650,12 +720,6 @@ h2 {
   margin-bottom: 1rem;
   font-size: 1.5rem;
   font-weight: bold;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
 }
 
 .data-table th,
@@ -675,10 +739,6 @@ input[type="file"] {
 }
 
 .btn {
-  margin: 0.5rem 0;
-}
-
-.form-select {
   margin: 0.5rem 0;
 }
 
