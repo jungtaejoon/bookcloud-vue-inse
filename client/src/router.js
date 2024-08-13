@@ -8,6 +8,8 @@ import AuthorRoyalties from "./components/AuthorRoyalties.vue";
 import TotalRoyalties from "./components/TotalRoyalties.vue";
 import AuthorPayment from "./components/AuthorPayment.vue";
 import AuthorContracts from "./components/AuthorContracts.vue";
+import EmailSender from "./components/EmailSender.vue";
+import ExcelToPdfConverter from "./components/ExcelToPdfConverter.vue";
 
 const routes = [
   { path: "/", component: HomePage },
@@ -17,8 +19,9 @@ const routes = [
   { path: "/bookStores", component: BookStoreList },
   { path: "/book-sales-parser", component: BookSalesParser },
   { path: "/author-royalties", component: AuthorRoyalties },
-  { path: "/total-royalties", component: TotalRoyalties },
   { path: "/author-payment", component: AuthorPayment },
+  { path: "/email-sender", component: EmailSender },
+  { path: "/converter", component: ExcelToPdfConverter },
 ];
 
 const router = createRouter({

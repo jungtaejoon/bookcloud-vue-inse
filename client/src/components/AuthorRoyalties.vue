@@ -8,7 +8,12 @@
           {{ quarter }}
         </option>
       </select>
+      <button @click="submitAllPayments" class="submit-button">모두 지급</button>
       <button @click="excelDownload" class="submit-button">엑셀 다운로드</button>
+    </div>
+
+    <div v-if="feedbackMessage" :class="{'success-message': isSuccess, 'error-message': !isSuccess}">
+      {{ feedbackMessage }}
     </div>
 
     <table v-if="authorRoyalties.length > 0">
@@ -92,9 +97,13 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted, toRaw, watch} from "vue";
-import {useStore} from "vuex";
+import { ref, computed, onMounted, toRaw, watch } from "vue";
+import { useStore } from "vuex";
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import createExcelOfPaperRoyalties from "../utils/createExcelOfPaperRoyalties.js";
+import createExcelOfEbookRoyalties from "../utils/createExcelOfEbookRoyalties.js";
+import createBulkTransferExcel from "../utils/createBulkTransferExcel.js";
 
 const selectedQuarter = ref("");
 const authorRoyalties = ref([]);
@@ -243,6 +252,7 @@ function calculateRoyaltiesForAllAuthorsByBooks(quarter) {
       milliEBookAmount: modifiedEBookSale ? modifiedEBookSale.milliEBookAmount : 0,
       yes24EBookAmount: modifiedEBookSale ? modifiedEBookSale.yes24EBookAmount : 0,
       aladinEBookAmount: modifiedEBookSale ? modifiedEBookSale.aladinEBookAmount : 0,
+      amount: modifiedEBookSale ? modifiedEBookSale.amount : 0,
       royaltyEBook,
       royaltyEBookNationalTax,
       royaltyEBookCountryTax,
@@ -262,6 +272,7 @@ const makeKey = (quarter, authorId, bookId) => {
 const fetchRoyaltiesForAllAuthors = async () => {
   if (!selectedQuarter.value) return;
   const temp = await store.dispatch("getRoyaltiesByQuarter", selectedQuarter.value);
+  // const temp = [];
   const temp4 = ref([]);
   if (temp.length === 0) {
     const rawRoyalties = calculateRoyaltiesForAllAuthorsByBooks(selectedQuarter.value);
@@ -378,18 +389,86 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
   await fetchRoyaltiesForAllAuthors();
 };
 
+
+const downloadZipFile = async (authors, quarter, authorRoyalties) => {
+  const zip = new JSZip();
+
+  for (const author of authors) {
+    const targetAuthorRoyalties = authorRoyalties.filter((authorRoyalty) => authorRoyalty.authorId === author.id);
+    // 종이책 엑셀 파일 생성
+    const hasPaper = ref(false);
+    const hasEBook = ref(false);
+    targetAuthorRoyalties.forEach((authorRoyalty) => {
+      const royalty = authorRoyalty.royalty;
+      hasPaper.value = !!royalty.book.isbnPaper;
+      hasEBook.value = !!royalty.book.isbnEBook;
+    });
+    if (hasPaper) {
+      const paperBuffer = await createExcelOfPaperRoyalties(author, quarter, authorRoyalties);
+      zip.file(`${author.name} ${quarter} 종이책 인세.xlsx`, paperBuffer);
+    }
+    if (hasEBook) {
+      const ebookBuffer = await createExcelOfEbookRoyalties(author, quarter, authorRoyalties);
+      zip.file(`${author.name} ${quarter} 전자책 인세.xlsx`, ebookBuffer);
+    }
+  }
+  const bulkTransferBuffer = await createBulkTransferExcel(authorRoyalties)
+  zip.file(`${quarter} 인세 이체.xlsx`, bulkTransferBuffer);
+
+  // 압축된 ZIP 파일 생성
+  const content = await zip.generateAsync({ type: 'blob' });
+
+  // 파일 다운로드
+  saveAs(content, `${quarter}_인세.zip`);
+};
+
 const excelDownload = async () => {
   const targetAuthorIds = new Set();
   authorRoyalties.value.forEach((authorRoyalty) => {
     targetAuthorIds.add(authorRoyalty.authorId);
   });
   const targetAuthors = store.state.authors.filter((author) => targetAuthorIds.has(author.id));
-  const promises = targetAuthors.map(async (author) => {
-    await createExcelOfPaperRoyalties(author, selectedQuarter.value, authorRoyalties.value);
-  });
-  await Promise.all(promises);
+
+  // 압축 파일 다운로드 실행
+  await downloadZipFile(targetAuthors, selectedQuarter.value, authorRoyalties.value);
 };
 
+const feedbackMessage = ref("");
+const isSuccess = ref(false);
+
+const submitAllPayments = async () => {
+  let allSuccess = true;
+
+  const promises = authorRoyalties.value.map(async (authorRoyalty) => {
+    try {
+      if (authorRoyalty.royalty.paperPaid !== true) {
+        await submitPayment(authorRoyalty.id, true);
+      }
+      if (authorRoyalty.royalty.eBookPaid !== true) {
+        await submitPayment(authorRoyalty.id, false);
+      }
+    } catch (error) {
+      allSuccess = false;
+      console.error("지급 실패:", error);
+    }
+  });
+
+  await Promise.all(promises);
+  await fetchRoyaltiesForAllAuthors();
+
+  if (allSuccess) {
+    feedbackMessage.value = "모든 지급이 완료되었습니다.";
+    isSuccess.value = true;
+  } else {
+    feedbackMessage.value = "일부 지급이 실패하였습니다.";
+    isSuccess.value = false;
+  }
+
+  // 메시지를 일정 시간 후에 사라지게 하기
+  setTimeout(() => {
+    feedbackMessage.value = "";
+  }, 5000);
+};
 
 </script>
 
@@ -440,5 +519,16 @@ const excelDownload = async () => {
   text-align: right; /* 인세액을 우측 정렬 */
 }
 
+.success-message {
+  color: green;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.error-message {
+  color: red;
+  margin-bottom: 10px;
+  text-align: center;
+}
 /* 추가 스타일링이 필요하면 여기에 작성 */
 </style>

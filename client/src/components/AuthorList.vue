@@ -14,6 +14,8 @@
           <th>주민등록번호</th>
           <th>주소</th>
           <th>계좌 번호</th>
+          <th>연락처</th>
+          <th>이메일</th>
           <th>작업</th>
         </tr>
       </thead>
@@ -23,6 +25,8 @@
           <td>{{ author.idNumber }}</td>
           <td>{{ author.address }}</td>
           <td>{{ author.accountNumber }}</td>
+          <td>{{ author.phoneNumber }}</td>
+          <td>{{ author.email }}</td>
           <td class="action-buttons">
             <button
               class="edit-button"
@@ -48,6 +52,8 @@
       </label>
       <label>주소: <input v-model="tempAuthor.address" /></label>
       <label>계좌 번호: <input v-model="tempAuthor.accountNumber" /></label>
+      <label>연락처: <input v-model="tempAuthor.phoneNumber" /></label>
+      <label>이메일: <input v-model="tempAuthor.email" /></label>
       <button v-if="updateModal" @click="updateAuthor" class="submit-button">
         수정 완료
       </button>
@@ -119,7 +125,7 @@ const addAuthor = async () => {
 <style scoped>
 /* 모든 스타일은 book-list-container 하위 요소에만 적용 */
 .book-list-container {
-  max-width: 800px;
+  max-width: 1600px;
   margin: 2rem auto;
   background-color: #f6f6f6;
   padding: 2rem;
@@ -182,7 +188,7 @@ const addAuthor = async () => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   width: 80%;
-  max-width: 500px;
+  max-width: 1000px;
 }
 
 .book-list-container .book-overlay {

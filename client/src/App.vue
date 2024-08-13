@@ -11,8 +11,9 @@
         <router-link to="/bookStores">서점 조회</router-link>
         <router-link to="/book-sales-parser">매출 입력</router-link>
         <router-link to="/author-royalties">인세</router-link>
-        <router-link to="/total-royalties">인세합</router-link>
         <router-link to="/author-payment">저자 지급</router-link>
+        <router-link to="/email-sender">이메일 발송</router-link>
+        <router-link to="/converter">엑셀 컨버터</router-link>
       </div>
       <div class="data-actions">
         <button @click="downloadData">데이터 다운로드</button>
@@ -27,6 +28,8 @@
 import {useStore} from "vuex";
 import {getDB} from "./db.js";
 import {exportToJson, clearDatabase, importFromJson} from "/src/idb-backup-and-restore.js";
+import {ref} from "vue";
+import axios from "axios";
 
 const store = useStore();
 
@@ -49,7 +52,21 @@ store.state.YES_24_EBOOK_ID_NUMBER = "00000006";
 store.state.KYOBO_EBOOK_ID_NUMBER = "00000007";
 store.state.MILLI_EBOOK_ID_NUMBER = "00000008";
 
+const file = ref(null)
+const pdfUrl = ref('')
+
 const downloadData = async () => {
+  // 현재 날짜와 시간을 가져옴
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  const dateString = `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+
   // 데이터를 문자열로 변환
   const db = await getDB();
   exportToJson(db)
@@ -60,7 +77,7 @@ const downloadData = async () => {
         const a = document.createElement("a");
         a.style.display = "none";
         a.href = url;
-        a.download = "data.json";
+        a.download = `bookcloud_royalty_data_${dateString}.json`; // 파일명에 날짜와 시간 포함
 
         document.body.appendChild(a);
         a.click();
@@ -72,6 +89,7 @@ const downloadData = async () => {
       });
 
 };
+
 
 const uploadData = async (event) => {
 

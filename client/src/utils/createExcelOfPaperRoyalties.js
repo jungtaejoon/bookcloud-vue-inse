@@ -13,7 +13,6 @@ const createExcelOfPaperRoyalties = async (author, quarter, authorRoyalties) => 
             reader.readAsDataURL(blob);
         });
     }
-
     const workbook = new Exceljs.Workbook();
     const worksheet = workbook.addWorksheet('종이책');
     worksheet.properties.defaultRowHeight = 23.25;
@@ -169,27 +168,29 @@ const createExcelOfPaperRoyalties = async (author, quarter, authorRoyalties) => 
     targetAuthorRoyalties.forEach((authorRoyalty) => {
         const royalty = authorRoyalty.royalty;
         const targetBook = royalty.book;
-        const currentRow = worksheet.addRow([targetBook.title, "", targetBook.isbnPaper, "", parseInt(targetBook.pricePaper).toLocaleString(), "", `${royalty.royaltyRatePaper}%`, "", royalty.quantity.toLocaleString(), "", royalty.royaltyPaper.toLocaleString()]);
-        currentRow.eachCell(cell => {
-            cell.border = {
-                top: {style: 'thin', color: {argb: 'FF000000'}},
-                left: {style: 'thin', color: {argb: 'FF000000'}},
-                bottom: {style: 'thin', color: {argb: 'FF000000'}},
-                right: {style: 'thin', color: {argb: 'FF000000'}}
-            };
-        });
-        worksheet.mergeCells(`A${currentRow.number}:B${currentRow.number}`);
-        worksheet.mergeCells(`C${currentRow.number}:D${currentRow.number}`);
-        worksheet.mergeCells(`E${currentRow.number}:F${currentRow.number}`);
-        worksheet.mergeCells(`G${currentRow.number}:H${currentRow.number}`);
-        worksheet.mergeCells(`I${currentRow.number}:J${currentRow.number}`);
-        worksheet.mergeCells(`K${currentRow.number}:L${currentRow.number}`);
-        worksheet.getCell(`A${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'left'};
-        worksheet.getCell(`C${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'center'};
-        worksheet.getCell(`E${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
-        worksheet.getCell(`G${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
-        worksheet.getCell(`I${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
-        worksheet.getCell(`K${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+        if (targetBook.isbnPaper) {
+            const currentRow = worksheet.addRow([targetBook.title, "", targetBook.isbnPaper, "", parseInt(targetBook.pricePaper).toLocaleString(), "", `${royalty.royaltyRatePaper}%`, "", royalty.quantity.toLocaleString(), "", royalty.royaltyPaper.toLocaleString()]);
+            currentRow.eachCell(cell => {
+                cell.border = {
+                    top: {style: 'thin', color: {argb: 'FF000000'}},
+                    left: {style: 'thin', color: {argb: 'FF000000'}},
+                    bottom: {style: 'thin', color: {argb: 'FF000000'}},
+                    right: {style: 'thin', color: {argb: 'FF000000'}}
+                };
+            });
+            worksheet.mergeCells(`A${currentRow.number}:B${currentRow.number}`);
+            worksheet.mergeCells(`C${currentRow.number}:D${currentRow.number}`);
+            worksheet.mergeCells(`E${currentRow.number}:F${currentRow.number}`);
+            worksheet.mergeCells(`G${currentRow.number}:H${currentRow.number}`);
+            worksheet.mergeCells(`I${currentRow.number}:J${currentRow.number}`);
+            worksheet.mergeCells(`K${currentRow.number}:L${currentRow.number}`);
+            worksheet.getCell(`A${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'left'};
+            worksheet.getCell(`C${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'center'};
+            worksheet.getCell(`E${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+            worksheet.getCell(`G${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+            worksheet.getCell(`I${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+            worksheet.getCell(`K${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+        }
     });
 
     //이후 빈행 하나
@@ -218,28 +219,30 @@ const createExcelOfPaperRoyalties = async (author, quarter, authorRoyalties) => 
     targetAuthorRoyalties.forEach((authorRoyalty) => {
         const royalty = authorRoyalty.royalty;
         const targetBook = royalty.book;
-        const currentRow = worksheet.addRow([targetBook.title, "", targetBook.isbnPaper, "", royalty.royaltyPaperNationalTax.toLocaleString(), "", royalty.royaltyPaperCountryTax.toLocaleString(), "", authorRoyalty.balance.toLocaleString(), "", authorRoyalty.netPay.toLocaleString()]);
-        currentRow.eachCell(cell => {
-            cell.border = {
-                top: {style: 'thin', color: {argb: 'FF000000'}},
-                left: {style: 'thin', color: {argb: 'FF000000'}},
-                bottom: {style: 'thin', color: {argb: 'FF000000'}},
-                right: {style: 'thin', color: {argb: 'FF000000'}}
-            };
-        });
-        worksheet.mergeCells(`A${currentRow.number}:B${currentRow.number}`);
-        worksheet.mergeCells(`C${currentRow.number}:D${currentRow.number}`);
-        worksheet.mergeCells(`E${currentRow.number}:F${currentRow.number}`);
-        worksheet.mergeCells(`G${currentRow.number}:H${currentRow.number}`);
-        worksheet.mergeCells(`I${currentRow.number}:J${currentRow.number}`);
-        worksheet.mergeCells(`K${currentRow.number}:L${currentRow.number}`);
-        sum.value += authorRoyalty.netPay < 0 ? 0 : authorRoyalty.netPay;
-        worksheet.getCell(`A${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'left'};
-        worksheet.getCell(`C${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'center'};
-        worksheet.getCell(`E${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
-        worksheet.getCell(`G${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
-        worksheet.getCell(`I${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
-        worksheet.getCell(`K${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+        if (targetBook.isbnPaper) {
+            const currentRow = worksheet.addRow([targetBook.title, "", targetBook.isbnPaper, "", royalty.royaltyPaperNationalTax.toLocaleString(), "", royalty.royaltyPaperCountryTax.toLocaleString(), "", authorRoyalty.balance.toLocaleString(), "", authorRoyalty.netPay.toLocaleString()]);
+            currentRow.eachCell(cell => {
+                cell.border = {
+                    top: {style: 'thin', color: {argb: 'FF000000'}},
+                    left: {style: 'thin', color: {argb: 'FF000000'}},
+                    bottom: {style: 'thin', color: {argb: 'FF000000'}},
+                    right: {style: 'thin', color: {argb: 'FF000000'}}
+                };
+            });
+            worksheet.mergeCells(`A${currentRow.number}:B${currentRow.number}`);
+            worksheet.mergeCells(`C${currentRow.number}:D${currentRow.number}`);
+            worksheet.mergeCells(`E${currentRow.number}:F${currentRow.number}`);
+            worksheet.mergeCells(`G${currentRow.number}:H${currentRow.number}`);
+            worksheet.mergeCells(`I${currentRow.number}:J${currentRow.number}`);
+            worksheet.mergeCells(`K${currentRow.number}:L${currentRow.number}`);
+            sum.value += authorRoyalty.netPay < 0 ? 0 : authorRoyalty.netPay;
+            worksheet.getCell(`A${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'left'};
+            worksheet.getCell(`C${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'center'};
+            worksheet.getCell(`E${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+            worksheet.getCell(`G${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+            worksheet.getCell(`I${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+            worksheet.getCell(`K${currentRow.number}`).alignment = {vertical: 'middle', horizontal: 'right'};
+        }
     });
 
     //합계
@@ -323,12 +326,103 @@ const createExcelOfPaperRoyalties = async (author, quarter, authorRoyalties) => 
         ext: { width: 100, height: 79 } // width and height of the image
     });
 
+    // Add a new worksheet for bookstore sales
+    const salesWorksheet = workbook.addWorksheet('별첨1');
+    salesWorksheet.properties.defaultRowHeight = 23.25;
+    salesWorksheet.properties.defaultColWidth = 7.5;
+
+    salesWorksheet.addRow(["[별첨1]"]);
+
+    // Set page setup properties for A4 size and margins
+    salesWorksheet.pageSetup.paperSize = 9; // A4 size
+    salesWorksheet.pageSetup.margins = {
+        left: 0.7, right: 0.7, top: 0.75, bottom: 0.75,
+        header: 0.3, footer: 0.3
+    };
+    salesWorksheet.pageSetup.fitToPage = true;
+    salesWorksheet.pageSetup.fitToHeight = 1;
+    salesWorksheet.pageSetup.fitToWidth = 1;
+
+// Add title row
+    const salesTitleRow = salesWorksheet.addRow([`종이책 판매부수`]);
+    salesTitleRow.height = titleRowHeight;
+    salesTitleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    salesWorksheet.mergeCells('A2:H2');
+    salesTitleRow.font = { size: 16, bold: true };
+    salesWorksheet.getCell('A2').border = {
+        bottom: { style: "thick", color: { argb: 'FF000000' } }
+    };
+
+// Add quarter row
+    const salesQuarterRow = salesWorksheet.addRow([author.name, quarterStr.value]);
+    salesQuarterRow.height = titleRowHeight;
+    salesWorksheet.mergeCells('A3:A3');
+    salesWorksheet.mergeCells('B3:H3');
+    salesWorksheet.getCell('A3').alignment = { vertical: 'middle', horizontal: 'center' };
+    salesWorksheet.getCell('B3').alignment = { vertical: 'middle', horizontal: 'right' };
+
+// Add column headers
+    const headers = ["책제목", "ISBN", "교보문고", "영풍문고", "YES24", "알라딘", "기타", "합계"];
+    const headerRow = salesWorksheet.addRow(headers);
+    headerRow.height = 25;
+    headerRow.eachCell((cell, colNumber) => {
+        cell.border = {
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
+        };
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD9EAD3' }
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // Set specific column widths
+        if (colNumber === 1) {
+            salesWorksheet.getColumn(colNumber).width = 30; // 책제목
+        } else if (colNumber === 2) {
+            salesWorksheet.getColumn(colNumber).width = 20; // ISBN
+        } else {
+            salesWorksheet.getColumn(colNumber).width = 12; // Other columns
+        }
+    });
+
+// Add sales data
+    const salesData = targetAuthorRoyalties.map((authorRoyalty) => [
+        authorRoyalty.royalty.bookTitle,
+        authorRoyalty.royalty.isbnPaper,
+        authorRoyalty.royalty.kyoboQuantity,
+        authorRoyalty.royalty.youngpoongQuantity,
+        authorRoyalty.royalty.yes24Quantity,
+        authorRoyalty.royalty.aladinQuantity,
+        authorRoyalty.royalty.gitaQuantity,
+        authorRoyalty.royalty.quantity
+    ]);
+
+    salesData.forEach(rowData => {
+        const row = salesWorksheet.addRow(rowData);
+        row.height = 20;
+        row.eachCell((cell, colNumber) => {
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+            cell.alignment = {
+                vertical: 'middle',
+                horizontal: colNumber === 1 ? 'left' : (colNumber > 2 ? 'right' : 'center')
+            };
+        });
+    });
 
     // 엑셀 파일 생성
     const buffer = await workbook.xlsx.writeBuffer();
-
+    return buffer
     // 파일 다운로드
-    const blob = new Blob([buffer], {type: 'application/octet-stream'});
-    saveAs(blob, `${author.name} ${quarter}분기 종이책 인세.xlsx`);
+    // const blob = new Blob([buffer], {type: 'application/octet-stream'});
+    // saveAs(blob, `${author.name} ${quarter}분기 종이책 인세.xlsx`);
 };
 export default createExcelOfPaperRoyalties;
