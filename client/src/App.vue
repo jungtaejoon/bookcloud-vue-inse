@@ -27,9 +27,8 @@
 <script setup>
 import {useStore} from "vuex";
 import {getDB} from "./db.js";
-import {exportToJson, clearDatabase, importFromJson} from "/src/idb-backup-and-restore.js";
+import {exportToJson, clearDatabase, importFromJson} from "client/src/idb-backup-and-restore.js";
 import {ref} from "vue";
-import axios from "axios";
 
 const store = useStore();
 
@@ -82,7 +81,6 @@ const downloadData = async () => {
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
-        console.log('Exported JSON string:', result)
       })
       .catch(error => {
         console.error('Something went wrong during export:', error)

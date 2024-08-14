@@ -133,7 +133,6 @@ const createBulkTransferExcel = async (authorRoyalties) => {
         const royalty = authorRoyalty.royalty;
         const author = royalty.author;
         const rawAccountNumber = author.accountNumber;
-        console.log(rawAccountNumber);
         if (rawAccountNumber !== undefined) {
             const parsedAccountNumber= parseAccountInfo(rawAccountNumber);
             const bankCode = parsedAccountNumber.bankCode;

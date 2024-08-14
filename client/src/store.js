@@ -291,6 +291,42 @@ export const store = createStore({
         console.error("Error updating author royalty:", error);
       }
     },
+    async updateAuthorRoyalties({ commit }, authorRoyalties) {
+      try {
+        const db = await getDB();
+        if (!db) {
+          console.error("DB is not initialized yet");
+          return;
+        }
+        const transaction = db.transaction(["authorRoyalties"], "readwrite");
+        const objectStore = transaction.objectStore("authorRoyalties");
+        authorRoyalties.forEach(authorRoyalty => {
+          let request = objectStore.put(authorRoyalty);
+
+          // 개체 저장 완료시 호출
+          request.onsuccess = () => {
+            console.log(`Item ${authorRoyalty} added to the store.`);
+          };
+
+          // 개체 저장 실패시 호출
+          request.onerror = (event) => {
+            console.error(`Failed to add item ${authorRoyalty}: `, event.target.error);
+          };
+        });
+
+        // 트랜잭션 완료시 호출
+        transaction.oncomplete = () => {
+          console.log("All items have been added.");
+        };
+
+        // 트랜잭션 오류 발생시 호출
+        transaction.onerror = (event) => {
+          console.error("Transaction error: ", event.target.error);
+        };
+      } catch (error) {
+        console.error("Error getting royalties by quarter:", error);
+      }
+    },
     async fetchAuthorRoyalties({ commit }) {
       try {
         const authorRoyalties = await performIndexedDBOperation("authorRoyalties", "fetch");
@@ -344,6 +380,42 @@ export const store = createStore({
         await performIndexedDBOperation("authorPayments", "add", payment);
       } catch (error) {
         console.error("Error saving payment:", error);
+      }
+    },
+    async addPayments({ commit }, payments) {
+      try {
+        const db = await getDB();
+        if (!db) {
+          console.error("DB is not initialized yet");
+          return;
+        }
+        const transaction = db.transaction(["authorPayments"], "readwrite");
+        const objectStore = transaction.objectStore("authorPayments");
+        payments.forEach(payment => {
+          let request = objectStore.add(payment);
+
+          // 개체 저장 완료시 호출
+          request.onsuccess = () => {
+            console.log(`Item ${payment} added to the store.`);
+          };
+
+          // 개체 저장 실패시 호출
+          request.onerror = (event) => {
+            console.error(`Failed to add item ${payment}: `, event.target.error);
+          };
+        });
+
+        // 트랜잭션 완료시 호출
+        transaction.oncomplete = () => {
+          console.log("All items have been added.");
+        };
+
+        // 트랜잭션 오류 발생시 호출
+        transaction.onerror = (event) => {
+          console.error("Transaction error: ", event.target.error);
+        };
+      } catch (error) {
+        console.error("Error getting royalties by quarter:", error);
       }
     },
     async deletePayment({ commit }, paymentId) {

@@ -272,6 +272,7 @@ const makeKey = (quarter, authorId, bookId) => {
 const fetchRoyaltiesForAllAuthors = async () => {
   if (!selectedQuarter.value) return;
   const temp = await store.dispatch("getRoyaltiesByQuarter", selectedQuarter.value);
+  console.log(temp);
   // const temp = [];
   const temp4 = ref([]);
   if (temp.length === 0) {
@@ -350,26 +351,23 @@ const addDebt = async (targetAuthorRoyalty, quarter) => {
   return await store.dispatch("saveDebt", debt);  // Save to Vuex or server
 };
 
-
-const submitPayment = async (authorRoyaltyId, isPaper) => {
-  const targetAuthorRoyalty = authorRoyalties.value.find((authorRoyalty) => authorRoyalty.id === authorRoyaltyId);
-  const amount = isPaper ? parseInt(targetAuthorRoyalty.netPay < 0 ? 0 : targetAuthorRoyalty.netPay) : parseInt(targetAuthorRoyalty.netPayEBook < 0 ? 0 : targetAuthorRoyalty.netPayEBook);
+const buildPayment = (targetAuthorRoyalty, amount) => {
   const date = ref("");
   switch (selectedQuarter.value.slice(-1)) {
     case "1":
-      date.value = `${selectedQuarter.value.slice(0, 4)}-04-${isPaper ? "5" : "15"}`;
+      date.value = `${selectedQuarter.value.slice(0, 4)}-04-15`;
       break;
     case "2":
-      date.value = `${selectedQuarter.value.slice(0, 4)}-07-${isPaper ? "5" : "15"}`;
+      date.value = `${selectedQuarter.value.slice(0, 4)}-07-15`;
       break;
     case "3":
-      date.value = `${selectedQuarter.value.slice(0, 4)}-10-${isPaper ? "5" : "15"}`;
+      date.value = `${selectedQuarter.value.slice(0, 4)}-10-15`;
       break;
     case "4":
-      date.value = `${parseInt(selectedQuarter.value.slice(0, 4)) + 1}-01-${isPaper ? "5" : "15"}`;
+      date.value = `${parseInt(selectedQuarter.value.slice(0, 4)) + 1}-01-15`;
       break;
   }
-  const payment = {
+  return {
     ab: `${targetAuthorRoyalty.authorId}/${targetAuthorRoyalty.bookId}`,
     authorId: targetAuthorRoyalty.authorId,
     authorName: targetAuthorRoyalty.royalty.authorName,
@@ -379,7 +377,14 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
     timestamp: new Date().toISOString(),
     amount,
   };
-  await store.dispatch("savePayment", payment);  // Save to Vuex or server
+}
+
+const submitPayment = async (authorRoyaltyId, isPaper) => {
+  const targetAuthorRoyalty = authorRoyalties.value.find((authorRoyalty) => authorRoyalty.id === authorRoyaltyId);
+
+  const amount = isPaper ? parseInt(targetAuthorRoyalty.netPay < 0 ? 0 : targetAuthorRoyalty.netPay) : parseInt(targetAuthorRoyalty.netPayEBook < 0 ? 0 : targetAuthorRoyalty.netPayEBook);
+  const payment = buildPayment(targetAuthorRoyalty, amount);
+  await store.dispatch("savePayment", payment);
   const targetRoyalty = targetAuthorRoyalty.royalty;
   isPaper ? targetRoyalty.paperPaid = true : targetRoyalty.eBookPaid = true;
   await store.dispatch("updateAuthorRoyalty", {
@@ -387,6 +392,25 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
     royalty: toRaw(targetRoyalty),
   });
   await fetchRoyaltiesForAllAuthors();
+}
+
+const submitAllPayments = async () => {
+  const targetAuthorRoyalties = authorRoyalties.value;
+  const payments = [];
+  const updatableAuthorRoyalties = targetAuthorRoyalties.map((targetAuthorRoyalty) => {
+    const amount = targetAuthorRoyalty.netPay + targetAuthorRoyalty.netPayEBook;
+    const payment = buildPayment(targetAuthorRoyalty, amount);
+    payments.push(payment);
+    const targetRoyalty = targetAuthorRoyalty.royalty;
+    targetRoyalty.paperPaid = true;
+    targetRoyalty.eBookPaid = true;
+    return {
+      ...targetAuthorRoyalty,
+      royalty: toRaw(targetRoyalty),
+    }
+  });
+  await store.dispatch("addPayments", payments);  // Save to Vuex or server
+  await store.dispatch("updateAuthorRoyalties", updatableAuthorRoyalties);
 };
 
 
@@ -436,39 +460,40 @@ const excelDownload = async () => {
 const feedbackMessage = ref("");
 const isSuccess = ref(false);
 
-const submitAllPayments = async () => {
-  let allSuccess = true;
-
-  const promises = authorRoyalties.value.map(async (authorRoyalty) => {
-    try {
-      if (authorRoyalty.royalty.paperPaid !== true) {
-        await submitPayment(authorRoyalty.id, true);
-      }
-      if (authorRoyalty.royalty.eBookPaid !== true) {
-        await submitPayment(authorRoyalty.id, false);
-      }
-    } catch (error) {
-      allSuccess = false;
-      console.error("지급 실패:", error);
-    }
-  });
-
-  await Promise.all(promises);
-  await fetchRoyaltiesForAllAuthors();
-
-  if (allSuccess) {
-    feedbackMessage.value = "모든 지급이 완료되었습니다.";
-    isSuccess.value = true;
-  } else {
-    feedbackMessage.value = "일부 지급이 실패하였습니다.";
-    isSuccess.value = false;
-  }
-
-  // 메시지를 일정 시간 후에 사라지게 하기
-  setTimeout(() => {
-    feedbackMessage.value = "";
-  }, 5000);
-};
+// const submitAllPayments = async () => {
+//   let allSuccess = true;
+//
+//   const promises = authorRoyalties.value.map(async (authorRoyalty) => {
+//     try {
+//       if (authorRoyalty.royalty.paperPaid !== true) {
+//         await addPayment(authorRoyalty.id, true);
+//       }
+//       if (authorRoyalty.royalty.eBookPaid !== true) {
+//         await addPayment(authorRoyalty.id, false);
+//       }
+//     } catch (error) {
+//       allSuccess = false;
+//       console.error("지급 실패:", error);
+//     }
+//   });
+//
+//   await Promise.all(promises);
+//
+//   if (allSuccess) {
+//     feedbackMessage.value = "모든 지급이 완료되었습니다.";
+//     isSuccess.value = true;
+//   } else {
+//     feedbackMessage.value = "일부 지급이 실패하였습니다.";
+//     isSuccess.value = false;
+//   }
+//
+//   await fetchRoyaltiesForAllAuthors();
+//
+//   // 메시지를 일정 시간 후에 사라지게 하기
+//   setTimeout(() => {
+//     feedbackMessage.value = "";
+//   }, 5000);
+// };
 
 </script>
 
