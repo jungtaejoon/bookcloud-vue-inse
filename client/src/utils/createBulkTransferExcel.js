@@ -124,23 +124,22 @@ function parseAccountInfo(info) {
     };
 }
 
-const createBulkTransferExcel = async (authorRoyalties) => {
+const createBulkTransferExcel = async (authorSums) => {
     const workbook = new Exceljs.Workbook();
     const worksheet = workbook.addWorksheet('입력정보');
 
     //1행 ~ 12행. 별도 관리 필요한 행은 아래에
-    authorRoyalties.forEach((authorRoyalty) => {
-        const royalty = authorRoyalty.royalty;
-        const author = royalty.author;
+    authorSums.forEach((authorSum) => {
+        const author = authorSum.author;
         const rawAccountNumber = author.accountNumber;
         if (rawAccountNumber !== undefined) {
             const parsedAccountNumber= parseAccountInfo(rawAccountNumber);
             const bankCode = parsedAccountNumber.bankCode;
             const accountNumber = parsedAccountNumber.accountNumber;
-            const netPay = authorRoyalty.netPay;
-            const netPayEBook = authorRoyalty.netPayEBook;
-            if (netPay > 0) worksheet.addRow([bankCode, accountNumber, "", netPay, "", "", "", "", ""]);
-            if (netPayEBook > 0) worksheet.addRow([bankCode, accountNumber, "", netPayEBook, "", "", "", "", ""]);
+            const sumPaper = authorSum.sumPaper ? authorSum.sumPaper.value : 0;
+            const sumEBook = authorSum.sumEBook ? authorSum.sumEBook.value : 0;
+            if (sumPaper > 0) worksheet.addRow([bankCode, accountNumber, "", sumPaper, "", "", "", "", ""]);
+            if (sumEBook > 0) worksheet.addRow([bankCode, accountNumber, "", sumEBook, "", "", "", "", ""]);
         }
     })
     // 엑셀 파일 생성

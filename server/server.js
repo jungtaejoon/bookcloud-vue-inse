@@ -27,10 +27,24 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+const sendProgress = (id, status, percentage) => {
+    if (events[id]) {
+        events[id].write(`data: ${JSON.stringify({ status, percentage })}\n\n`);
+    }
+};
+
+const calculateTotalSize = (attachments) => {
+    return attachments.reduce((total, file) => {
+        // MIME 인코딩을 고려하여 전송 크기를 약 1.37배로 가정
+        const encodedSize = Math.ceil(fs.statSync(file.path).size * 1.37);
+        return total + encodedSize;
+    }, 0);
+};
+
 app.post('/send-email', upload.array('attachments[]'), (req, res) => {
     const { to, subject, message } = req.body;
     const attachments = req.files.map(file => ({
-        filename: file.originalname,
+        filename: Buffer.from(file.originalname, 'latin1').toString('utf8'),
         path: file.path,
     }));
 
@@ -42,15 +56,41 @@ app.post('/send-email', upload.array('attachments[]'), (req, res) => {
         attachments,
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-        attachments.forEach(file => fs.unlinkSync(file.path));
+    const id = Date.now().toString();
+    res.json({ status: 'success', message: 'Email sending started', id });
 
-        if (error) {
-            return res.status(500).send('Failed to send email: ' + error.toString());
+    let loadedSize = 0;
+    const totalSize = calculateTotalSize(attachments);
+
+    const interval = setInterval(() => {
+        loadedSize += Math.random() * (totalSize / 100); // 상태 업데이트
+
+        if (loadedSize >= totalSize) {
+            clearInterval(interval);
+            sendProgress(id, 'complete', 100);
+        } else {
+            const percentage = Math.round((loadedSize / totalSize) * 100);
+            sendProgress(id, 'progress', percentage);
         }
-        res.send('Email sent successfully!');
+    }, 200);
+});
+
+
+const events = {};
+
+app.get('/progress/:id', (req, res) => {
+    const id = req.params.id;
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    events[id] = res;
+
+    req.on('close', () => {
+        delete events[id];
     });
 });
+
 
 app.get('/progress', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');

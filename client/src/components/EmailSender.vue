@@ -71,7 +71,9 @@
           </ul>
         </div>
       </div>
-
+      <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
       <button type="submit" class="submit-button">Send Emails</button>
     </form>
   </div>
@@ -166,12 +168,43 @@ const getFileInputRef = (writer) => {
     }
   };
 };
+const calculateTotalSize = (selectedWriters, attachments) => {
+  let totalSize = 0;
+
+  selectedWriters.forEach(writer => {
+    const emailAttachments = attachments[writer.email.trim()];
+    if (emailAttachments) {
+      emailAttachments.forEach(file => {
+        totalSize += file.size; // 파일 크기를 합산
+      });
+    }
+    totalSize += new Blob([emailSubject.value, emailContent.value]).size; // 이메일 제목과 내용 크기 추가
+  });
+
+  return totalSize;
+};
+function updateProgressBar(progressBar, loaded, total) {
+  const percentage = Math.round((loaded / total) * 100);
+  progressBar.style.width = `${percentage}%`;
+  progressBar.innerText = `${percentage}%`;
+
+  // 클라이언트에서 조금씩 진행바를 업데이트
+  requestAnimationFrame(() => {
+    progressBar.style.width = `${percentage}%`;
+    progressBar.innerText = `${percentage}%`;
+  });
+}
 
 const sendEmails = async () => {
   try {
-    const formData = new FormData();
+    const progressBar = document.getElementById('progress-bar');
+    let totalEmails = selectedWriters.value.length;
+    let completedEmails = 0;
+    let totalProgress = 0;
 
-    selectedWriters.value.forEach((writer) => {
+    for (const writer of selectedWriters.value) {
+      const formData = new FormData();
+
       formData.append('to', writer.email.trim());
       formData.append('subject', emailSubject.value);
       formData.append('message', emailContent.value);
@@ -182,23 +215,51 @@ const sendEmails = async () => {
           formData.append('attachments[]', file);
         });
       }
-    });
 
-    const response = await axios.post('http://localhost:3000/send-email', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+      const response = await axios.post('http://localhost:3000/send-email', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.status !== 'success') {
+        throw new Error('Failed to initiate email: ' + response.data.message);
       }
-    });
 
-    if (response.data === 'Email sent successfully!') {
-      alert('Emails sent successfully.');
-    } else {
-      alert('Failed to send emails: ' + response.data);
+      const eventSource = new EventSource(`http://localhost:3000/progress/${response.data.id}`);
+
+      eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.status === 'progress') {
+          updateProgressBar(progressBar, data.percentage, 100);
+        }
+
+        if (data.status === 'complete') {
+          completedEmails++;
+          eventSource.close();
+
+          if (completedEmails === totalEmails) {
+            progressBar.style.width = `100%`;
+            progressBar.innerText = `100%`;
+            alert('All emails sent successfully.');
+          }
+        }
+
+        if (data.status === 'error') {
+          eventSource.close();
+          alert('Failed to send email');
+        }
+      };
+
     }
+
   } catch (error) {
-    alert('Failed to send emails: ' + error);
+    alert('Failed to send emails: ' + error.message);
   }
 };
+
+
 
 // textarea 크기 자동 조절 함수
 const autoResize = (event) => {
@@ -388,4 +449,22 @@ const autoResize = (event) => {
 .submit-button:hover {
   background-color: #009628;
 }
+.progress-container {
+  width: 100%;
+  background-color: #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.progress-bar {
+  width: 0;
+  height: 20px;
+  background-color: #00c73c;
+  text-align: center;
+  color: white;
+  line-height: 20px;
+  transition: width 0.4s ease;
+}
+
 </style>

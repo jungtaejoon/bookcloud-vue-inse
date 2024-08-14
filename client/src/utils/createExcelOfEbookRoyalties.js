@@ -417,7 +417,7 @@ const createExcelOfEbookRoyalties = async (author, quarter, authorRoyalties) => 
 
     // 엑셀 파일 생성
     const buffer = await workbook.xlsx.writeBuffer();
-    return buffer;
+    return { buffer, sumEBook: sum };
     // 파일 다운로드
     // const blob = new Blob([buffer], { type: 'application/octet-stream' });
     // saveAs(blob, `${author.name} ${quarter}분기 전자책 인세.xlsx`);

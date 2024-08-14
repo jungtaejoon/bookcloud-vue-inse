@@ -272,7 +272,6 @@ const makeKey = (quarter, authorId, bookId) => {
 const fetchRoyaltiesForAllAuthors = async () => {
   if (!selectedQuarter.value) return;
   const temp = await store.dispatch("getRoyaltiesByQuarter", selectedQuarter.value);
-  console.log(temp);
   // const temp = [];
   const temp4 = ref([]);
   if (temp.length === 0) {
@@ -395,10 +394,11 @@ const submitPayment = async (authorRoyaltyId, isPaper) => {
 }
 
 const submitAllPayments = async () => {
+  await fetchRoyaltiesForAllAuthors();
   const targetAuthorRoyalties = authorRoyalties.value;
   const payments = [];
   const updatableAuthorRoyalties = targetAuthorRoyalties.map((targetAuthorRoyalty) => {
-    const amount = targetAuthorRoyalty.netPay + targetAuthorRoyalty.netPayEBook;
+    const amount = (targetAuthorRoyalty.netPay > 0 ? targetAuthorRoyalty.netPay : 0) + (targetAuthorRoyalty.netPayEBook > 0 ? targetAuthorRoyalty.netPayEBook : 0);
     const payment = buildPayment(targetAuthorRoyalty, amount);
     payments.push(payment);
     const targetRoyalty = targetAuthorRoyalty.royalty;
@@ -416,7 +416,7 @@ const submitAllPayments = async () => {
 
 const downloadZipFile = async (authors, quarter, authorRoyalties) => {
   const zip = new JSZip();
-
+  const authorSums = [];
   for (const author of authors) {
     const targetAuthorRoyalties = authorRoyalties.filter((authorRoyalty) => authorRoyalty.authorId === author.id);
     // 종이책 엑셀 파일 생성
@@ -424,19 +424,23 @@ const downloadZipFile = async (authors, quarter, authorRoyalties) => {
     const hasEBook = ref(false);
     targetAuthorRoyalties.forEach((authorRoyalty) => {
       const royalty = authorRoyalty.royalty;
-      hasPaper.value = !!royalty.book.isbnPaper;
-      hasEBook.value = !!royalty.book.isbnEBook;
+      hasPaper.value = hasPaper.value || !!royalty.book.isbnPaper;
+      hasEBook.value = hasEBook.value || !!royalty.book.isbnEBook;
     });
-    if (hasPaper) {
-      const paperBuffer = await createExcelOfPaperRoyalties(author, quarter, authorRoyalties);
-      zip.file(`${author.name} ${quarter} 종이책 인세.xlsx`, paperBuffer);
+    const authorSum = {author};
+    if (hasPaper.value) {
+      const paperObj = await createExcelOfPaperRoyalties(author, quarter, authorRoyalties);
+      zip.file(`${author.name} ${quarter} 종이책 인세.xlsx`, paperObj.buffer);
+      authorSum.sumPaper = paperObj.sumPaper
     }
-    if (hasEBook) {
-      const ebookBuffer = await createExcelOfEbookRoyalties(author, quarter, authorRoyalties);
-      zip.file(`${author.name} ${quarter} 전자책 인세.xlsx`, ebookBuffer);
+    if (hasEBook.value) {
+      const eBookObj = await createExcelOfEbookRoyalties(author, quarter, authorRoyalties);
+      zip.file(`${author.name} ${quarter} 전자책 인세.xlsx`, eBookObj.buffer);
+      authorSum.sumEBook = eBookObj.sumEBook
     }
+    authorSums.push(authorSum);
   }
-  const bulkTransferBuffer = await createBulkTransferExcel(authorRoyalties)
+  const bulkTransferBuffer = await createBulkTransferExcel(authorSums)
   zip.file(`${quarter} 인세 이체.xlsx`, bulkTransferBuffer);
 
   // 압축된 ZIP 파일 생성
