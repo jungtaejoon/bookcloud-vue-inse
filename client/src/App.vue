@@ -27,7 +27,7 @@
 <script setup>
 import {useStore} from "vuex";
 import {getDB} from "./db.js";
-import {exportToJson, clearDatabase, importFromJson} from "client/src/idb-backup-and-restore.js";
+import {exportToJson, clearDatabase, importFromJson} from "/src/idb-backup-and-restore.js";
 import {ref} from "vue";
 
 const store = useStore();
