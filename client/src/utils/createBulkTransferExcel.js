@@ -24,9 +24,8 @@ const bankCodes = {
     '상호저축': '50',
     '도이치': '55',
     '암로': '56',
-    '중국은행': '063',
     '우체국': '71',
-    'KEB하나': '81',
+    '하나': '81',
     '평화': '83',
     'HSBC': '54',
     'SC': '23',
@@ -36,39 +35,8 @@ const bankCodes = {
     '케이뱅크': '089',
     '카카오뱅크': '090',
     '토스뱅크': '092',
-    'JP모간': '057',
     'BOA': '060',
-    'BNP파리바': '061',
     '산림조합': '064',
-    '유안타증권': '209',
-    'KB증권': '218',
-    '미래에셋증권': '230',
-    '삼성증권': '240',
-    '한국투자증권': '243',
-    'NH투자증권': '247',
-    '교보증권': '261',
-    '아이엠증권': '262',
-    '현대차증권': '263',
-    '키움증권': '264',
-    'LS증권': '265',
-    '에스케이증권': '266',
-    '대신증권': '267',
-    '솔로몬투자증권': '268',
-    '한화증권': '269',
-    '하나증권': '270',
-    '신한투자증권': '278',
-    '동부증권': '279',
-    '유진투자증권': '280',
-    '메리츠종금': '287',
-    '부국증권': '290',
-    '신영증권': '291',
-    'LIG투자증권': '292',
-    '우리투자증권': '294',
-    '다올투자증권': '227',
-    '카카오페이증권': '288',
-    'IBK투자증권': '225',
-    '토스증권': '271',
-    '상상인증권': '221'
 };
 
 // Levenshtein 거리 계산 함수
@@ -124,7 +92,7 @@ function parseAccountInfo(info) {
     };
 }
 
-const createBulkTransferExcel = async (authorSums) => {
+const createBulkTransferExcel = async (authorSums, quarter) => {
     const workbook = new Exceljs.Workbook();
     const worksheet = workbook.addWorksheet('입력정보');
 
@@ -138,8 +106,8 @@ const createBulkTransferExcel = async (authorSums) => {
             const accountNumber = parsedAccountNumber.accountNumber;
             const sumPaper = authorSum.sumPaper ? authorSum.sumPaper.value : 0;
             const sumEBook = authorSum.sumEBook ? authorSum.sumEBook.value : 0;
-            if (sumPaper > 0) worksheet.addRow([bankCode, accountNumber, "", sumPaper, "", "", "", "", ""]);
-            if (sumEBook > 0) worksheet.addRow([bankCode, accountNumber, "", sumEBook, "", "", "", "", ""]);
+            if (sumPaper > 0) worksheet.addRow([bankCode, accountNumber, "", sumPaper, `${author.name}종이인세`, `${quarter}종이인세`, "", "", ""]);
+            if (sumEBook > 0) worksheet.addRow([bankCode, accountNumber, "", sumEBook, `${author.name}전자인세`, `${quarter}전자인세`, "", "", ""]);
         }
     })
     // 엑셀 파일 생성

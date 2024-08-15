@@ -440,7 +440,7 @@ const downloadZipFile = async (authors, quarter, authorRoyalties) => {
     }
     authorSums.push(authorSum);
   }
-  const bulkTransferBuffer = await createBulkTransferExcel(authorSums)
+  const bulkTransferBuffer = await createBulkTransferExcel(authorSums, quarter);
   zip.file(`${quarter} 인세 이체.xlsx`, bulkTransferBuffer);
 
   // 압축된 ZIP 파일 생성

@@ -59,20 +59,35 @@ app.post('/send-email', upload.array('attachments[]'), (req, res) => {
     const id = Date.now().toString();
     res.json({ status: 'success', message: 'Email sending started', id });
 
-    let loadedSize = 0;
+    // Track the actual progress of sending the email
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            sendProgress(id, 'error', 0);
+            console.error(`Error while sending email: ${error}`);
+            return;
+        }
+
+        console.log(`Email sent: ${info.response}`);
+        sendProgress(id, 'complete', 100);
+    });
+
+    // Simulate progress based on attachment size
     const totalSize = calculateTotalSize(attachments);
+    let loadedSize = 0;
+    const progressInterval = 50; // ms
 
     const interval = setInterval(() => {
-        loadedSize += Math.random() * (totalSize / 100); // 상태 업데이트
+        loadedSize += Math.random() * (totalSize / 20); // 증가 속도를 약간 줄임
+
+        const percentage = Math.round((loadedSize / totalSize) * 100);
 
         if (loadedSize >= totalSize) {
             clearInterval(interval);
-            sendProgress(id, 'complete', 100);
+            sendProgress(id, 'complete', 100); // 최종 완료 상태 전송
         } else {
-            const percentage = Math.round((loadedSize / totalSize) * 100);
             sendProgress(id, 'progress', percentage);
         }
-    }, 200);
+    }, progressInterval);
 });
 
 

@@ -30,6 +30,10 @@ import {getDB} from "./db.js";
 import {exportToJson, clearDatabase, importFromJson} from "/src/idb-backup-and-restore.js";
 import {ref} from "vue";
 
+import CryptoJS from 'crypto-js';
+
+const SECRET_KEY = import.meta.env.VITE_SECRET_KEY;
+
 const store = useStore();
 
 const DB_NAME = "INSE";
@@ -54,6 +58,15 @@ store.state.MILLI_EBOOK_ID_NUMBER = "00000008";
 const file = ref(null)
 const pdfUrl = ref('')
 
+function encryptData(data) {
+  return CryptoJS.AES.encrypt(data, SECRET_KEY).toString();
+}
+
+function decryptData(encryptedData) {
+  const bytes = CryptoJS.AES.decrypt(encryptedData, SECRET_KEY);
+  return bytes.toString(CryptoJS.enc.Utf8);
+}
+
 const downloadData = async () => {
   // 현재 날짜와 시간을 가져옴
   const now = new Date();
@@ -70,13 +83,13 @@ const downloadData = async () => {
   const db = await getDB();
   exportToJson(db)
       .then(result => {
-        // 데이터를 blob 형태로 생성
-        const blob = new Blob([result], {type: "application/json"});
+        const encryptedData = encryptData(result);  // 데이터를 암호화
+        const blob = new Blob([encryptedData], {type: "application/json"});
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.style.display = "none";
         a.href = url;
-        a.download = `bookcloud_royalty_data_${dateString}.json`; // 파일명에 날짜와 시간 포함
+        a.download = `bookcloud_royalty_data_${dateString}.json`;
 
         document.body.appendChild(a);
         a.click();
@@ -90,8 +103,6 @@ const downloadData = async () => {
 
 
 const uploadData = async (event) => {
-
-
   const file = event.target.files[0];
   const reader = new FileReader();
   reader.onload = async (e) => {
@@ -99,7 +110,8 @@ const uploadData = async (event) => {
     clearDatabase(db)
         .then(() => {
           console.log("DB cleared! ");
-          importFromJson(db, e.target.result)
+          const decryptedData = decryptData(e.target.result);  // 데이터를 복호화
+          importFromJson(db, decryptedData)
               .then(() => {
                 console.log('Successfully imported data');
               })
@@ -110,9 +122,6 @@ const uploadData = async (event) => {
         .catch(error => {
           console.error('Something went wrong during upload:', error);
         });
-    // const data = JSON.parse(e.target.result);
-    // store.commit("SET_AUTHORS", data.authors);
-    // store.commit("setBooks", data.books);
   };
   reader.readAsText(file);
 };
