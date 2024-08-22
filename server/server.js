@@ -40,11 +40,6 @@ const calculateTotalSize = (attachments) => {
     }, 0);
 };
 
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 app.post('/send-email', upload.array('attachments[]'), (req, res) => {
     const { to, subject, message } = req.body;
     const attachments = req.files.map(file => ({
@@ -224,7 +219,13 @@ const execCommand = (command) => {
     });
 };
 
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+  
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
 });
