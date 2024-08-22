@@ -111,7 +111,7 @@ app.get('/progress', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-
+    console.log("test")
     let progress = 0;
 
     const interval = setInterval(() => {
