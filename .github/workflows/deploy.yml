@@ -26,6 +26,13 @@ jobs:
         cd ../server
         npm install
 
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/bookcloudpub.pem
+        chmod 600 ~/.ssh/bookcloudpub.pem
+        ssh-keyscan -H your.server.ip >> ~/.ssh/known_hosts
+
     - name: Deploy to Server
       run: |
         ssh -i ~/.ssh/bookcloudpub.pem ubuntu@43.201.56.74 << 'EOF'
