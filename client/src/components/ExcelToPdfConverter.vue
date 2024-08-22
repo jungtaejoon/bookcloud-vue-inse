@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1>Excel to PDF Converter</h1>
+    <h1>Excel to PDF Converter: defaultPassword</h1>
     <form @submit.prevent="uploadFiles">
       <input type="file" @change="handleFileUpload" accept=".xlsx, .xls" multiple />
       <button type="submit" :disabled="!files.length || isLoading">Convert to PDF</button>

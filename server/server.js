@@ -6,11 +6,11 @@ const fs = require('fs');
 const cors = require('cors');
 const { exec } = require('child_process');
 const archiver = require('archiver');
+const XLSX = require('xlsx');
 
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
-// CORS 설정
 app.use(cors({
     origin: 'http://localhost:5173',
 }));
@@ -18,7 +18,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Nodemailer 설정
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -35,7 +34,6 @@ const sendProgress = (id, status, percentage) => {
 
 const calculateTotalSize = (attachments) => {
     return attachments.reduce((total, file) => {
-        // MIME 인코딩을 고려하여 전송 크기를 약 1.37배로 가정
         const encodedSize = Math.ceil(fs.statSync(file.path).size * 1.37);
         return total + encodedSize;
     }, 0);
@@ -59,7 +57,6 @@ app.post('/send-email', upload.array('attachments[]'), (req, res) => {
     const id = Date.now().toString();
     res.json({ status: 'success', message: 'Email sending started', id });
 
-    // Track the actual progress of sending the email
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
             sendProgress(id, 'error', 0);
@@ -71,25 +68,23 @@ app.post('/send-email', upload.array('attachments[]'), (req, res) => {
         sendProgress(id, 'complete', 100);
     });
 
-    // Simulate progress based on attachment size
     const totalSize = calculateTotalSize(attachments);
     let loadedSize = 0;
-    const progressInterval = 50; // ms
+    const progressInterval = 50;
 
     const interval = setInterval(() => {
-        loadedSize += Math.random() * (totalSize / 20); // 증가 속도를 약간 줄임
+        loadedSize += Math.random() * (totalSize / 20);
 
         const percentage = Math.round((loadedSize / totalSize) * 100);
 
         if (loadedSize >= totalSize) {
             clearInterval(interval);
-            sendProgress(id, 'complete', 100); // 최종 완료 상태 전송
+            sendProgress(id, 'complete', 100);
         } else {
             sendProgress(id, 'progress', percentage);
         }
     }, progressInterval);
 });
-
 
 const events = {};
 
@@ -106,7 +101,6 @@ app.get('/progress/:id', (req, res) => {
     });
 });
 
-
 app.get('/progress', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -120,17 +114,17 @@ app.get('/progress', (req, res) => {
             res.write('data: done\n\n');
             res.end();
         } else {
-            progress += 10;  // 예시로 10씩 증가시킴
+            progress += 10;
             res.write(`data: ${progress}\n\n`);
         }
-    }, 500);  // 매 500ms마다 진행상황 업데이트
+    }, 500);
 
     req.on('close', () => {
         clearInterval(interval);
     });
 });
 
-app.post('/convert-excel-to-pdf', upload.array('files'), (req, res) => {
+app.post('/convert-excel-to-pdf', upload.array('files'), async (req, res) => {
     const files = req.files;
 
     if (!files || files.length === 0) {
@@ -140,30 +134,36 @@ app.post('/convert-excel-to-pdf', upload.array('files'), (req, res) => {
     const pdfFiles = [];
     let processedCount = 0;
 
-    files.forEach((file, index) => {
+    for (const file of files) {
         const excelFilePath = path.resolve(file.path);
         const pdfFilePath = path.resolve('uploads', `${Date.now()}-${file.originalname}.pdf`);
 
+        const workbook = XLSX.readFile(excelFilePath);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const cellValue = sheet['I5'] ? sheet['I5'].v : 'defaultPassword'; // 'A1' 셀의 값을 비밀번호로 사용
+        const password = cellValue.split('-')[0]; // '-' 기준으로 앞부분만 비밀번호로 사용
+
         const command = `cscript //nologo ConvertExcelToPDF.vbs "${excelFilePath}" "${pdfFilePath}"`;
 
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`exec error: ${error}`);
-                fs.unlinkSync(excelFilePath);
-                return res.status(500).send('Failed to convert Excel to PDF');
-            }
+        try {
+            await execCommand(command);
+
+            const encryptedPdfPath = path.resolve('uploads', `${Date.now()}-encrypted-${file.originalname}.pdf`);
+
+            const qpdfCommand = `qpdf --encrypt ${password} ${password} 256 -- "${pdfFilePath}" "${encryptedPdfPath}"`;
+
+            await execCommand(qpdfCommand);
 
             pdfFiles.push({
                 originalname: Buffer.from(file.originalname, 'latin1').toString('utf8'),
-                path: pdfFilePath,
+                path: encryptedPdfPath,
             });
 
             fs.unlinkSync(excelFilePath);
+            fs.unlinkSync(pdfFilePath); // 암호화되지 않은 PDF 파일 삭제
             processedCount++;
 
-            // 진행 상황을 업데이트합니다.
             const progress = Math.round((processedCount / files.length) * 100);
-            // SSE로 진행 상황을 전송하는 부분을 추가할 수 있습니다.
 
             if (processedCount === files.length) {
                 const zipFilePath = path.resolve('uploads', `converted_pdfs_${Date.now()}.zip`);
@@ -197,9 +197,26 @@ app.post('/convert-excel-to-pdf', upload.array('files'), (req, res) => {
 
                 archive.finalize();
             }
+        } catch (error) {
+            console.error(`Error processing file: ${error}`);
+            fs.unlinkSync(excelFilePath);
+            return res.status(500).send('Failed to convert Excel to PDF');
+        }
+    }
+});
+
+
+const execCommand = (command) => {
+    return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(stdout);
+            }
         });
     });
-});
+};
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');

@@ -52,6 +52,7 @@
             <input
                 type="file"
                 multiple
+                accept="application/pdf"
                 :name="'attachments_' + writer.email.trim()"
                 @change="onFileChange($event, writer)"
                 class="file-input"
@@ -93,7 +94,11 @@ onMounted(async () => {
 });
 
 // 이메일이 있는 작가들만 필터링
-const writersWithEmail = computed(() => store.state.authors.filter(writer => writer.email));
+const writersWithEmail = computed(() => {
+  return store.state.authors
+      .filter(writer => writer.email)
+      .sort((a, b) => a.name.localeCompare(b.name)); // 이름을 알파벳 순으로 정렬
+});
 const selectedWriters = ref([]);
 const emailSubject = ref('');
 const emailContent = ref('');
