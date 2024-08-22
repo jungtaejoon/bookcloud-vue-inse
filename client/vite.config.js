@@ -10,4 +10,9 @@ export default defineConfig({
   optimizeDeps: {
     include: ['crypto-js'],
   },
+  resolve: {
+    alias: {
+      'crypto-js': path.resolve(__dirname, '../node_modules/crypto-js'),
+    },
+  },
 });
