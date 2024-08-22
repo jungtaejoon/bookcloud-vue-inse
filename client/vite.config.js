@@ -7,12 +7,10 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, '../server/public'),
   },
-  optimizeDeps: {
-    include: ['crypto-js'],
-  },
   resolve: {
-    alias: {
-      'crypto-js': path.resolve(__dirname, '../node_modules/crypto-js'),
-    },
+    modules: [
+      'node_modules',
+      path.resolve(__dirname, '../node_modules'),
+    ],
   },
 });
