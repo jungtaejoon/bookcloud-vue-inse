@@ -7,6 +7,15 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, '../server/public'),
   },
+  optimizeDeps: {
+    include: ['crypto-js'],
+    include: ['axios'],
+    include: ['archiver'],
+    include: ['cors'],
+    include: ['nodemailer'],
+    include: ['pdf-lib'],
+    include: ['xlsx'],
+  },
   resolve: {
     alias: {
       'archiver': path.resolve(__dirname, '../node_modules/archiver'),
