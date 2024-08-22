@@ -30,7 +30,7 @@
       <textarea
           id="email-content"
           v-model="emailContent"
-          placeholder="Enter your message"
+          placeholder="Enter your message!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
           @input="autoResize"
       ></textarea>
     </div>
