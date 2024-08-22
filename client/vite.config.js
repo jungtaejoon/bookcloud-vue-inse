@@ -8,13 +8,7 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../server/public'),
   },
   optimizeDeps: {
-    include: ['crypto-js'],
-    include: ['axios'],
-    include: ['archiver'],
-    include: ['cors'],
-    include: ['nodemailer'],
-    include: ['pdf-lib'],
-    include: ['xlsx'],
+    include: ['crypto-js', 'axios', 'archiver', 'cors', 'nodemailer', 'pdf-lib', 'xlsx'],
   },
   resolve: {
     alias: {
