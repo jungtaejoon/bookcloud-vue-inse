@@ -40,7 +40,7 @@ const uploadFiles = async () => {
   })
 
   try {
-    const response = await axios.post('http://localhost:80/convert-excel-to-pdf', formData, {
+    const response = await axios.post('http://localhost:3000/convert-excel-to-pdf', formData, {
       responseType: 'blob',
     })
 
@@ -54,7 +54,7 @@ const uploadFiles = async () => {
 }
 
 const startProgressListener = () => {
-  const eventSource = new EventSource('http://localhost:80/progress')
+  const eventSource = new EventSource('http://localhost:3000/progress')
 
   eventSource.onmessage = (event) => {
     if (event.data === 'done') {

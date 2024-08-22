@@ -224,6 +224,7 @@ const execCommand = (command) => {
     });
 };
 
-app.listen(80, () => {
-    console.log('Server is running on port 80');
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
