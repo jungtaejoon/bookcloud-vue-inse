@@ -144,7 +144,7 @@ app.post('/convert-excel-to-pdf', upload.array('files'), async (req, res) => {
         const cellValue = sheet['I5'] ? sheet['I5'].v : 'defaultPassword'; // 'A1' 셀의 값을 비밀번호로 사용
         const password = cellValue.split('-')[0]; // '-' 기준으로 앞부분만 비밀번호로 사용
 
-        const command = `unoconv -f "${excelFilePath}" -o "${pdfFilePath}"`;
+        const command = `unoconv -f pdf "${excelFilePath}" -o "${pdfFilePath}"`;
 
         try {
             await execCommand(command);
