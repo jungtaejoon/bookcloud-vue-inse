@@ -41,6 +41,7 @@ const calculateTotalSize = (attachments) => {
 };
 
 app.post('/send-email', upload.array('attachments[]'), (req, res) => {
+    console.log("send!!!!!!!!!!!!!!!!!!!!!@Okj2oe1")
     const { to, subject, message } = req.body;
     const attachments = req.files.map(file => ({
         filename: Buffer.from(file.originalname, 'latin1').toString('utf8'),
@@ -106,7 +107,6 @@ app.get('/progress', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    console.log("test")
     let progress = 0;
 
     const interval = setInterval(() => {
