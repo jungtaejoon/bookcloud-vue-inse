@@ -8,9 +8,14 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../server/public'),
   },
   resolve: {
-    modules: [
-      'node_modules',
-      path.resolve(__dirname, '../node_modules'),
-    ],
+    alias: {
+      'archiver': path.resolve(__dirname, '../node_modules/archiver'),
+      'axios': path.resolve(__dirname, '../node_modules/axios'),
+      'crypto-js': path.resolve(__dirname, '../node_modules/crypto-js'),
+      'cors': path.resolve(__dirname, '../node_modules/cors'),
+      'nodemailer': path.resolve(__dirname, '../node_modules/nodemailer'),
+      'pdf-lib': path.resolve(__dirname, '../node_modules/pdf-lib'),
+      'xlsx': path.resolve(__dirname, '../node_modules/xlsx'),
+    },
   },
 });
