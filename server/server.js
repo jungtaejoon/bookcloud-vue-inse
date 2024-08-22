@@ -17,6 +17,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -38,6 +39,11 @@ const calculateTotalSize = (attachments) => {
         return total + encodedSize;
     }, 0);
 };
+
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.post('/send-email', upload.array('attachments[]'), (req, res) => {
     const { to, subject, message } = req.body;
