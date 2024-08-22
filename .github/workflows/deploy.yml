@@ -18,14 +18,6 @@ jobs:
       with:
         node-version: '21'
 
-    - name: Install dependencies and build client
-      run: |
-        cd client
-        npm install
-        npm run build
-        cd ../server
-        npm install
-
     - name: Set up SSH
       run: |
         mkdir -p ~/.ssh
@@ -38,8 +30,7 @@ jobs:
         ssh -i ~/.ssh/bookcloudpub.pem ubuntu@43.201.56.74 << 'EOF'
         cd /home/ubuntu/bookcloud-vue-inse
         git pull origin master
-        cd server
-        npm install
+        npm run build
         pm2 restart all
         EOF
       env:
