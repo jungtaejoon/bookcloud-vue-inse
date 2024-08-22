@@ -28,9 +28,9 @@ jobs:
 
     - name: Deploy to Server
       run: |
-        ssh -i ~/.ssh/jungtaejoon-gmail.pem ec2-user@13.210.90.0 << 'EOF'
-        cd /home/ec2-user/bookcloud-vue-inse
-        git pull origin main
+        ssh -i ~/.ssh/bookcloudpub.pem ubuntu@43.201.56.74 << 'EOF'
+        cd /home/ubuntu/bookcloud-vue-inse
+        git pull origin master
         cd server
         npm install
         pm2 restart all
