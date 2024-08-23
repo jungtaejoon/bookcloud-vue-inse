@@ -30,7 +30,7 @@
       <textarea
           id="email-content"
           v-model="emailContent"
-          placeholder="Enter your message"
+          placeholder="Enter your message!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
           @input="autoResize"
       ></textarea>
     </div>
@@ -221,7 +221,7 @@ const sendEmails = async () => {
         });
       }
 
-      const response = await axios.post('http://localhost:3000/send-email', formData, {
+      const response = await axios.post('http://43.201.56.74:3000/send-email', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -231,7 +231,7 @@ const sendEmails = async () => {
         throw new Error('Failed to initiate email: ' + response.data.message);
       }
 
-      const eventSource = new EventSource(`http://localhost:3000/progress/${response.data.id}`);
+      const eventSource = new EventSource(`http://43.201.56.74:3000/progress/${response.data.id}`);
 
       eventSource.onmessage = function(event) {
         const data = JSON.parse(event.data);

@@ -12,11 +12,12 @@ const app = express();
 const upload = multer({ dest: 'uploads/' });
 
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: 'http://localhost:3000',
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -40,6 +41,7 @@ const calculateTotalSize = (attachments) => {
 };
 
 app.post('/send-email', upload.array('attachments[]'), (req, res) => {
+    console.log("send!!!!!!!!!!!!!!!!!!!!!@Okj2oe1")
     const { to, subject, message } = req.body;
     const attachments = req.files.map(file => ({
         filename: Buffer.from(file.originalname, 'latin1').toString('utf8'),
@@ -105,7 +107,6 @@ app.get('/progress', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-
     let progress = 0;
 
     const interval = setInterval(() => {
@@ -143,7 +144,7 @@ app.post('/convert-excel-to-pdf', upload.array('files'), async (req, res) => {
         const cellValue = sheet['I5'] ? sheet['I5'].v : 'defaultPassword'; // 'A1' 셀의 값을 비밀번호로 사용
         const password = cellValue.split('-')[0]; // '-' 기준으로 앞부분만 비밀번호로 사용
 
-        const command = `cscript //nologo ConvertExcelToPDF.vbs "${excelFilePath}" "${pdfFilePath}"`;
+        const command = `unoconv -f pdf "${excelFilePath}" -o "${pdfFilePath}"`;
 
         try {
             await execCommand(command);
@@ -218,6 +219,13 @@ const execCommand = (command) => {
     });
 };
 
-app.listen(3000, () => {
-    console.log('Server is running on port 3000');
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+  
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!`);
 });
